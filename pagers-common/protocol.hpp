@@ -3,23 +3,29 @@
 #include <cstdint>
 #include <cstddef>
 
-const size_t KEY_LENGTH_BITS = 64;
-const size_t KEY_LENGTH_BYTES = KEY_LENGTH_BITS / 8;
+#include "security.hpp"
 
-const size_t HASH_LENGTH_BITS = 128;
-const size_t HASH_LENGTH_BYTES = HASH_LENGTH_BITS / 8;
-
-// structs
-struct proto_frame {
+// this will get signed
+struct proto_data {
     int receiver_id;
     int sequence_number;
+};
+
+// this will be sent as is
+struct proto_frame {
     uint8_t encrypted_hash[HASH_LENGTH_BYTES];
+    struct proto_data data;
 };
 
 // functions
-// each function should return 0 on success
-// values other than zero indicate error
 
-int hash(const uint8_t* data, size_t data_len, uint8_t* hash);
-int crypto_sign(const uint8_t* private_key, const uint8_t* hash, uint8_t* encrypted_hash);
-int crypto_verify(const uint8_t* public_key, const uint8_t* hash, const uint8_t* encrypted_hash);
+// each function should return 0 on success
+// values other than zero indicate error (add consts here for values)
+// example: const int ERR_BAD_SIGNATURE = 1;
+
+// takes frame->data, hashes, signs, and saves encrypted hash to
+// frame->encrypted_hash
+int proto_sign(const uint8_t* private_key, const struct proto_frame* frame);
+
+// verifies frame->data with frame->encrypted_hash
+int proto_verify(const uint8_t* public_key, const struct proto_frame* frame);
