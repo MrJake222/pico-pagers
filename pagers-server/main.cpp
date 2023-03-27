@@ -65,13 +65,17 @@ int main() {
         // 1ms / 1000us = 1
         // 1s / 1000us = 1000
         // 10ms / 1000us = 10
-        int cnt = 1000;
+        int cnt = 10000;
         while (cnt--) send_silence();
 
         // TODO remove GP2 (used for testing)
         gpio_put(2, 1);
 
-        send_byte(val++);
+        uint8_t bytes[2] = { val, val+1 };
+
+        val++;
+
+        send_bytes(bytes, 2);
 
         gpio_put(2, 0);
     }

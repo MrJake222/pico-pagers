@@ -54,6 +54,12 @@ void send_byte(uint8_t byte) {
     }
 }
 
+void send_bytes(uint8_t* bytes, int count) {
+    while (count--) {
+        send_byte(*bytes++);
+    }
+}
+
 
 // ------------------------------------ RECEIVING ------------------------------------ //
 
@@ -66,20 +72,11 @@ int receive_bit(uint8_t* bit) {
     // wait for falling
     while (gpio_get(PIN_RX) != 0);
 
-    // wait for rising
-    int us = 0;
-    while (gpio_get(PIN_RX) == 0) {
-        // TODO extremely hacky, anecdotal evidence, refactor ASAP
-        // experiments proves sleep_us(1) actually takes approx 2.6 us
-        // this should be an interrupt
-        // TODO remove GP2 (used for testing only)
-        gpio_put(2, 1);
-        sleep_us(1);
-        us+=3;
-        gpio_put(2, 0);
-        sleep_us(1);
-        us+=3;
-    }
+    // wait for rising + measure time of low state
+    uint64_t time_start = time_us_64();
+    while (gpio_get(PIN_RX) == 0);
+
+    int us = (int)(time_us_64() - time_start);
 
     // zero for <us> ms
     if (us < ONE_LOW_TIME_MARGIN) {
@@ -109,6 +106,19 @@ int receive_byte(uint8_t *byte) {
 
         *byte <<= 1;
         *byte += bit;
+    }
+
+    return 0;
+}
+
+int receive_bytes(uint8_t* bytes, int count) {
+    while (count) {
+        // intentionally wait for all bytes, ignoring errors
+        int err = receive_byte(bytes);
+        if (err == 0) {
+            count--;
+            bytes++; // advance pointer
+        }
     }
 
     return 0;

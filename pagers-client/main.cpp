@@ -42,11 +42,11 @@ int main() {
 
     while (1) {
 
-        uint8_t byte;
+        uint8_t bytes[2];
 
-        int ret = receive_byte(&byte);
+        int ret = receive_bytes(bytes, 2);
         if (ret == 0) {
-            printf("rx: %02x\n", byte);
+            printf("rx2: %02x %02x\n", bytes[0], bytes[1]);
         }
 
         //printf("rx: %02x\n", byte);

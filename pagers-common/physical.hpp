@@ -3,7 +3,7 @@
 #include <cstdint>
 
 // settings
-const int CLOCK_SPEED_HZ = 1000;
+const int CLOCK_SPEED_HZ = 6400;
 const int PIN_TX = 0;
 const int PIN_RX = 1;
 
@@ -25,6 +25,7 @@ const int ZERO_LOW_TIME_MARGIN = (ZERO_LOW_TIME_US + SILENCE_LOW_TIME_US) / 2;
 const int ONE_LOW_TIME_MARGIN = (ONE_LOW_TIME_US + SILENCE_LOW_TIME_US) / 2;
 
 // TODO make a class for different pins
+// TODO refactor this into interrupts
 
 // config
 void config_print();
@@ -34,9 +35,11 @@ void send_setup();
 void send_bit(bool bit);
 void send_silence();
 void send_byte(uint8_t byte);
+void send_bytes(uint8_t* bytes, int count);
 
 // receiving
 // returns -1 on silence received, 0 on success
 void receive_setup();
 int receive_bit(bool* bit);
 int receive_byte(uint8_t* byte);
+int receive_bytes(uint8_t* bytes, int count);
