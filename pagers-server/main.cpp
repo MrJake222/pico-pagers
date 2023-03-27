@@ -24,24 +24,27 @@ int main() {
     // printf writes to USB only
     // uart_* write to pin GP(UART_TX_PIN) only
 
-    uint8_t data[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-    size_t datalen = 10;
+    /*uint8_t data[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    size_t datalen = 10;*/
 
+    struct proto_data data = {
+            .receiver_id = 1,
+            .sequence_number = 1,
+            .message_type = 1,
+            .message_param = 1
+    };
+
+    const uint8_t private_key[KEY_LENGTH_BYTES] = { 0 };
     struct proto_frame frame;
-    frame.receiver_id = 17;
-    frame.sequence_number = 0;
-
-    const uint8_t private_key[KEY_LENGTH_BYTES];
-    uint8_t plain_hash[HASH_LENGTH_BYTES];
 
     while (1) {
 
-        hash(data, datalen, plain_hash);
-        crypto_sign(private_key, plain_hash, frame.encrypted_hash);
+        data.sequence_number++;
+
+        proto_checksum_calc(&data);
+        proto_encrypt(private_key, &data, &frame);
 
         uart_write_blocking(UART_ID, (uint8_t*)&frame, sizeof(struct proto_frame));
-
-        frame.sequence_number++;
 
         sleep_ms(2000);
     }

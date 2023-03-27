@@ -3,11 +3,7 @@
 #include <cstdint>
 #include <cstddef>
 
-// mostly to be used externally
-const size_t HASH_LENGTH_BITS = 128;
-const size_t HASH_LENGTH_BYTES = HASH_LENGTH_BITS / 8;
-
-const size_t KEY_LENGTH_BITS = 64;
+const size_t KEY_LENGTH_BITS = 128;
 const size_t KEY_LENGTH_BYTES = KEY_LENGTH_BITS / 8;
 
 // each function should return 0 on success
@@ -17,6 +13,5 @@ const size_t KEY_LENGTH_BYTES = KEY_LENGTH_BITS / 8;
 // should operate on raw bytes
 // (no protocol struct access)
 
-int crypto_hash(const uint8_t* data, size_t data_len, uint8_t* hash);
-int crypto_sign(const uint8_t* private_key, const uint8_t* hash, uint8_t* encrypted_hash);
-int crypto_verify(const uint8_t* public_key, const uint8_t* hash, const uint8_t* encrypted_hash);
+int crypto_encrypt(const uint8_t* private_key, const uint8_t* data, uint8_t* encrypted_data);
+int crypto_decrypt(const uint8_t* public_key, const uint8_t* encrypted_data, uint8_t* data);
