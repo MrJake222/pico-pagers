@@ -8,7 +8,7 @@
 // this will get signed
 struct proto_data {
     unsigned short receiver_id;         // 2 bytes
-    unsigned long sequence_number;      // 8 bytes
+    unsigned long long sequence_number; // 8 bytes
 
     unsigned short message_type;        // 2 bytes
     unsigned short message_param;       // 2 bytes
