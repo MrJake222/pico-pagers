@@ -16,7 +16,10 @@ int main() {
 
     // UART on USB
     stdio_usb_init();
-    printf("Hello usb!\n");
+
+    sleep_ms(2000);
+    printf("\n\nHello usb pagers-server!\n");
+    config_print();
 
     // hardware UART
     /*uart_init(UART_ID, BAUD_RATE);

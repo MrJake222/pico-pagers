@@ -1,6 +1,21 @@
 #include "physical.hpp"
 
 #include <pico/stdlib.h>
+#include <cstdio>
+
+void config_print() {
+    printf("physical interface config:\n");
+    printf("CYCLE_TIME_US : %d\n", CYCLE_TIME_US);
+    printf("HALF_CYCLE_TIME_US : %d\n", HALF_CYCLE_TIME_US);
+    printf("SILENCE_LOW_TIME_US : %d\n", SILENCE_LOW_TIME_US);
+    printf("SILENCE_HIGH_TIME_US : %d\n", SILENCE_HIGH_TIME_US);
+    printf("ZERO_LOW_TIME_US : %d\n", ZERO_LOW_TIME_US);
+    printf("ZERO_HIGH_TIME_US : %d\n", ZERO_HIGH_TIME_US);
+    printf("ONE_LOW_TIME_US : %d\n", ONE_LOW_TIME_US);
+    printf("ONE_HIGH_TIME_US : %d\n", ONE_HIGH_TIME_US);
+    printf("ZERO_LOW_TIME_MARGIN : %d\n", ZERO_LOW_TIME_MARGIN);
+    printf("ONE_LOW_TIME_MARGIN : %d\n\n", ONE_LOW_TIME_MARGIN);
+}
 
 // ------------------------------------ SENDING ------------------------------------ //
 

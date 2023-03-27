@@ -26,6 +26,9 @@ const int ONE_LOW_TIME_MARGIN = (ONE_LOW_TIME_US + SILENCE_LOW_TIME_US) / 2;
 
 // TODO make a class for different pins
 
+// config
+void config_print();
+
 // sending
 void send_setup();
 void send_bit(bool bit);

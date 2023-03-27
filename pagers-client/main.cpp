@@ -17,19 +17,8 @@ int main() {
     stdio_usb_init();
 
     sleep_ms(2000);
-
-    printf("Hello usb!\n");
-
-    printf("CYCLE_TIME_US : %d\n", CYCLE_TIME_US);
-    printf("HALF_CYCLE_TIME_US : %d\n", HALF_CYCLE_TIME_US);
-    printf("SILENCE_LOW_TIME_US : %d\n", SILENCE_LOW_TIME_US);
-    printf("SILENCE_HIGH_TIME_US : %d\n", SILENCE_HIGH_TIME_US);
-    printf("ZERO_LOW_TIME_US : %d\n", ZERO_LOW_TIME_US);
-    printf("ZERO_HIGH_TIME_US : %d\n", ZERO_HIGH_TIME_US);
-    printf("ONE_LOW_TIME_US : %d\n", ONE_LOW_TIME_US);
-    printf("ONE_HIGH_TIME_US : %d\n", ONE_HIGH_TIME_US);
-    printf("ZERO_LOW_TIME_MARGIN : %d\n", ZERO_LOW_TIME_MARGIN);
-    printf("ONE_LOW_TIME_MARGIN : %d\n", ONE_LOW_TIME_MARGIN);
+    printf("\n\nHello usb pagers-client!\n");
+    config_print();
 
     // hardware UART
     /*uart_init(UART_ID, BAUD_RATE);
