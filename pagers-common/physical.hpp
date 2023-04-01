@@ -4,8 +4,8 @@
 
 // settings
 const int CLOCK_SPEED_HZ = 6400;
-const int PIN_TX = 0;
-const int PIN_RX = 1;
+const int PIN_TX = 15;
+const int PIN_RX = 16;
 
 
 // private defines

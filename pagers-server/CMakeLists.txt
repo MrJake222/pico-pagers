@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.13)
 
-# own libraries
-add_subdirectory(../pagers-common pagers-common)
-
 # pico sdk
 include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
+
+# own libraries
+add_subdirectory(../pagers-common pagers-common)
 
 project(pagers-server C CXX ASM)
 
