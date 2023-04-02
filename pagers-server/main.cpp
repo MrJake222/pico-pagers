@@ -56,7 +56,7 @@ int main() {
     printf("sizeof proto_frame %u\n", sizeof(struct proto_frame));
 
     while (1) {
-        int cnt = CLOCK_SPEED_HZ * 2; // delay in seconds
+        int cnt = CLOCK_SPEED_HZ * 1; // delay in seconds
         while (cnt--) send_silence();
 
 
