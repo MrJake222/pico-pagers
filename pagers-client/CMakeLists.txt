@@ -11,6 +11,7 @@ project(pagers-client C CXX ASM)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
+# add_compile_options(-O2)
 
 pico_sdk_init()
 

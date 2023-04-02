@@ -35,39 +35,34 @@ int main() {
 
     receive_setup();
 
+    // for testing
     gpio_init(2);
     gpio_set_dir(2, GPIO_OUT);
     gpio_init(3);
     gpio_set_dir(3, GPIO_OUT);
 
     while (1) {
-
-        uint8_t bytes[2];
-
-        int ret = receive_bytes(bytes, 2);
-        if (ret == 0) {
-            printf("rx2: %02x %02x\n", bytes[0], bytes[1]);
+        int err = receive_bytes((uint8_t*)&frame, PROTO_FRAME_SIZE);
+        if (err != 0) {
+            // error
+            continue;
         }
-
-        //printf("rx: %02x\n", byte);
-
-        // TODO handle frame start detection
-        /*uart_read_blocking(UART_ID, (uint8_t*)&frame, PROTO_DATA_SIZE);
 
         // TODO check return value
         proto_decrypt(public_key, &frame, &data);
         proto_checksum_verify(&data);
 
+        int time_seconds = time_us_64() / 1000000;
+
         // TODO verify sequence number
-        printf("rid=%04x, seq=%16llx, type=%04x, param=%04x, checksum=%08x\n",
+        printf("[%02d:%02d] rid=%04x, seq=%16llx, type=%04x, param=%04x, checksum=%08x\n",
+               time_seconds / 60, time_seconds % 60,
                data.receiver_id,
                data.sequence_number,
                data.message_type,
                data.message_param,
                data.checksum);
 
-        sleep_ms(2000);*/
-
-
+        sleep_ms(2000);
     }
 }

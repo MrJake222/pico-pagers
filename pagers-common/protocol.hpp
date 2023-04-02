@@ -24,6 +24,8 @@ struct proto_frame {
     unsigned char encrypted_data[PROTO_DATA_SIZE];
 };
 
+#define PROTO_FRAME_SIZE sizeof(struct proto_frame)
+
 // functions
 
 // each function should return 0 on success

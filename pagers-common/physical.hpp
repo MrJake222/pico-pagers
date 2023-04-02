@@ -3,7 +3,7 @@
 #include <cstdint>
 
 // settings
-const int CLOCK_SPEED_HZ = 6400;
+const int CLOCK_SPEED_HZ = 1000;
 const int PIN_TX = 15;
 const int PIN_RX = 16;
 
@@ -23,6 +23,7 @@ const int ONE_HIGH_TIME_US = CYCLE_TIME_US * 4 / 5;
 // rx
 const int ZERO_LOW_TIME_MARGIN = (ZERO_LOW_TIME_US + SILENCE_LOW_TIME_US) / 2;
 const int ONE_LOW_TIME_MARGIN = (ONE_LOW_TIME_US + SILENCE_LOW_TIME_US) / 2;
+const int MAX_SILENCE_ALLOWED = CYCLE_TIME_US * 100; // char times
 
 // TODO make a class for different pins
 // TODO refactor this into interrupts

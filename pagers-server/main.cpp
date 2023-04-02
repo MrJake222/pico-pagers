@@ -31,7 +31,7 @@ int main() {
 
     struct proto_data data = {
             .receiver_id = 0x1215,
-            .sequence_number = 0xCAFEDEADBEEFCAFE,
+            .sequence_number = 0, //0xCAFEDEADBEEFCAFE,
             .message_type = 0xDBDB,
             .message_param = 0xACDC
     };
@@ -41,42 +41,27 @@ int main() {
 
     send_setup();
 
+    // for testing
     gpio_init(2);
     gpio_set_dir(2, GPIO_OUT);
 
-    uint8_t val = 0;
+    proto_checksum_calc(&data);
+    proto_encrypt(private_key, &data, &frame);
+    printf("sending: ");
+    for (int i=0; i<PROTO_DATA_SIZE; i++)
+        printf("%02x ", ((uint8_t*)&frame)[i]);
+    printf("\n");
 
     while (1) {
+        int cnt = CLOCK_SPEED_HZ * 1; // delay in seconds
+        while (cnt--) send_silence();
 
-        /*printf("sizeof short %u\n", sizeof(short));
-        printf("sizeof int %u, sizeof long %u, sizeof long long %u\n", sizeof(int), sizeof(long), sizeof(long long));
-        printf("sizeof proto data %u\n", PROTO_DATA_SIZE);
 
         data.sequence_number++;
 
         proto_checksum_calc(&data);
         proto_encrypt(private_key, &data, &frame);
 
-        uart_write_blocking(UART_ID, (uint8_t*)&frame, PROTO_DATA_SIZE);
-        sleep_ms(2000);*/
-
-
-        // delay 1s
-        // 1ms / 1000us = 1
-        // 1s / 1000us = 1000
-        // 10ms / 1000us = 10
-        int cnt = 10000;
-        while (cnt--) send_silence();
-
-        // TODO remove GP2 (used for testing)
-        gpio_put(2, 1);
-
-        uint8_t bytes[2] = { val, val+1 };
-
-        val++;
-
-        send_bytes(bytes, 2);
-
-        gpio_put(2, 0);
+        send_bytes((uint8_t*)&frame, PROTO_FRAME_SIZE);
     }
 }

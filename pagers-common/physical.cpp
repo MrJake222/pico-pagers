@@ -112,12 +112,24 @@ int receive_byte(uint8_t *byte) {
 }
 
 int receive_bytes(uint8_t* bytes, int count) {
+
+    uint64_t last_good_byte = time_us_64();
+
     while (count) {
-        // intentionally wait for all bytes, ignoring errors
+        // intentionally wait for all bytes, ignoring short interruptions
         int err = receive_byte(bytes);
         if (err == 0) {
             count--;
             bytes++; // advance pointer
+            last_good_byte = time_us_64();
+        }
+        else {
+            // silence detected
+            if (time_us_64() - last_good_byte > MAX_SILENCE_ALLOWED) {
+                // silence too long
+                return -1;
+            }
+            // if not too long -> ignore for now
         }
     }
 
