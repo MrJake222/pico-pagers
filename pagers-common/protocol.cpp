@@ -1,13 +1,18 @@
 #include "protocol.hpp"
 
 #include <cstring>
+#include "crc.hpp"
 
 int proto_checksum_calc(struct proto_data *data) {
-    data->checksum = 0;
+    data->checksum = crc_16((unsigned char*)data, PROTO_DATA_SIZE - PROTO_CHECKSUM_SIZE);
     return SUCCESS;
 }
 
 int proto_checksum_verify(struct proto_data *data) {
+    unsigned short crc_should_be = crc_16((unsigned char*)data, PROTO_DATA_SIZE - PROTO_CHECKSUM_SIZE);
+    if (crc_should_be != data->checksum)
+        return ERR_WRONG_CHECKSUM;
+
     return SUCCESS;
 }
 

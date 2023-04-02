@@ -30,8 +30,8 @@ int main() {
     // uart_* write to pin GP(UART_TX_PIN) only
 
     struct proto_data data = {
-            .receiver_id = 0x1215,
             .sequence_number = 0, //0xCAFEDEADBEEFCAFE,
+            .receiver_id = 0x1215,
             .message_type = 0xDBDB,
             .message_param = 0xACDC
     };
@@ -52,8 +52,11 @@ int main() {
         printf("%02x ", ((uint8_t*)&frame)[i]);
     printf("\n");
 
+    printf("sizeof proto_data %u\n", sizeof(struct proto_data));
+    printf("sizeof proto_frame %u\n", sizeof(struct proto_frame));
+
     while (1) {
-        int cnt = CLOCK_SPEED_HZ * 1; // delay in seconds
+        int cnt = CLOCK_SPEED_HZ * 2; // delay in seconds
         while (cnt--) send_silence();
 
 

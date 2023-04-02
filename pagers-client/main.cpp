@@ -50,18 +50,19 @@ int main() {
 
         // TODO check return value
         proto_decrypt(public_key, &frame, &data);
-        proto_checksum_verify(&data);
+        int checksum_verify = proto_checksum_verify(&data);
 
         int time_seconds = time_us_64() / 1000000;
 
         // TODO verify sequence number
-        printf("[%02d:%02d] rid=%04x, seq=%16llx, type=%04x, param=%04x, checksum=%08x\n",
+        printf("[%02d:%02d] rid=%04x, seq=%16llx, type=%04x, param=%04x, checksum=%04x [%s]\n",
                time_seconds / 60, time_seconds % 60,
                data.receiver_id,
                data.sequence_number,
                data.message_type,
                data.message_param,
-               data.checksum);
+               data.checksum,
+               checksum_verify == SUCCESS ? "ok" : "wrong checksum");
 
         sleep_ms(2000);
     }

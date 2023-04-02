@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 # this library files
 add_library(pagers-common STATIC
         protocol.cpp
-        physical.cpp)
+        physical.cpp crc.cpp)
 
 target_link_libraries(${PROJECT_NAME}
         pico_stdlib

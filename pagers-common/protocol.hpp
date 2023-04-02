@@ -6,18 +6,22 @@
 #include "security.hpp"
 
 // this will get signed
+// compiler promotes every sub 2-byte type to int (4 bytes)
 struct proto_data {
-    unsigned short receiver_id;         // 2 bytes
-    unsigned long long sequence_number; // 8 bytes
+    // defining this lower displaces memory and causes larger
+    // overall struct size
+    unsigned long long sequence_number;
 
-    unsigned short message_type;        // 2 bytes
-    unsigned short message_param;       // 2 bytes
+    unsigned short receiver_id;
 
-    unsigned int checksum;              // 4 bytes
-                                        // 18 bytes
+    unsigned short message_type;
+    unsigned short message_param;
+
+    unsigned short checksum;
 };
 
 #define PROTO_DATA_SIZE sizeof(struct proto_data)
+#define PROTO_CHECKSUM_SIZE sizeof(int)
 
 // this will be sent as is
 struct proto_frame {
@@ -32,6 +36,7 @@ struct proto_frame {
 // values other than zero indicate error (add consts here for values)
 // example: const int ERR_BAD_SIGNATURE = 1;
 const int SUCCESS = 0;
+const int ERR_WRONG_CHECKSUM = -1;
 
 int proto_checksum_calc(struct proto_data* data);
 int proto_checksum_verify(struct proto_data* data);
