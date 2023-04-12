@@ -56,8 +56,7 @@ int main() {
     printf("sizeof proto_frame %u\n", sizeof(struct proto_frame));
 
     while (1) {
-        int cnt = CLOCK_SPEED_HZ * 1; // delay in seconds
-        while (cnt--) send_silence();
+//        sleep_ms(1000);
 
 
         data.sequence_number++;
@@ -66,5 +65,7 @@ int main() {
         proto_encrypt(private_key, &data, &frame);
 
         send_bytes((uint8_t*)&frame, PROTO_FRAME_SIZE);
+        send_wait_for_end();
+        sleep_us(MIN_SILENCE_GENERATED_US * 10); // todo remove *10
     }
 }

@@ -10,6 +10,8 @@ add_library(pagers-common STATIC
 
 target_link_libraries(${PROJECT_NAME}
         pico_stdlib
+        hardware_pwm
+        hardware_irq
 )
 
 target_include_directories(pagers-common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

@@ -2,11 +2,15 @@
 
 #include <pico/stdlib.h>
 #include <cstdio>
+#include <cstring>
+
+#include "hardware/clocks.h"
+#include "hardware/pwm.h"
+#include "hardware/irq.h"
 
 void config_print() {
     printf("physical interface config:\n");
     printf("CYCLE_TIME_US : %d\n", CYCLE_TIME_US);
-    printf("HALF_CYCLE_TIME_US : %d\n", HALF_CYCLE_TIME_US);
     printf("SILENCE_LOW_TIME_US : %d\n", SILENCE_LOW_TIME_US);
     printf("SILENCE_HIGH_TIME_US : %d\n", SILENCE_HIGH_TIME_US);
     printf("ZERO_LOW_TIME_US : %d\n", ZERO_LOW_TIME_US);
@@ -19,45 +23,74 @@ void config_print() {
 
 // ------------------------------------ SENDING ------------------------------------ //
 
+void pwm_wrap_irq();
+
+uint slice_num;
+
 void send_setup() {
-    gpio_init(PIN_TX);
-    gpio_set_dir(PIN_TX, GPIO_OUT);
+    gpio_set_function(PIN_TX, GPIO_FUNC_PWM);
+
+    slice_num = pwm_gpio_to_slice_num(PIN_TX);
+
+    pwm_config c = pwm_get_default_config();
+    pwm_config_set_wrap(&c, PWM_TOP);
+
+    uint sysclk = clock_get_hz(clk_sys);
+    float div = (float)sysclk / (float)(CLOCK_SPEED_HZ * PWM_TOP);
+    pwm_config_set_clkdiv(&c, div);
+
+    // If we ever want to use another PWM wrap handler, adjust this
+    irq_set_exclusive_handler(PWM_IRQ_WRAP, pwm_wrap_irq);
+    irq_set_enabled(PWM_IRQ_WRAP, true);
+    pwm_set_irq_enabled(slice_num, true);
+
+    pwm_set_gpio_level(PIN_TX, PWM_DUTY_SILENCE);
+    pwm_init(slice_num, &c, true);
+
+    puts("PWM started");
 }
 
-void send_bit(bool bit) {
-    if (bit) {
-        gpio_put(PIN_TX, false);
-        sleep_us(ONE_LOW_TIME_US);
-        gpio_put(PIN_TX, true);
-        sleep_us(ONE_HIGH_TIME_US);
-    }
-    else {
-        gpio_put(PIN_TX, false);
-        sleep_us(ZERO_LOW_TIME_US);
-        gpio_put(PIN_TX, true);
-        sleep_us(ZERO_HIGH_TIME_US);
-    }
-}
+volatile uint8_t bytes_to_send[BYTE_BUFFER_SIZE];
+volatile uint byte_count;
+volatile uint bit_index;
+volatile uint byte_index;
+volatile bool transfer = false;
 
-void send_silence() {
-    gpio_put(PIN_TX, false);
-    sleep_us(SILENCE_LOW_TIME_US);
-    gpio_put(PIN_TX, true);
-    sleep_us(SILENCE_HIGH_TIME_US);
-}
+void pwm_wrap_irq() {
+    if (pwm_get_irq_status_mask() & (1<<slice_num)) {
+        pwm_clear_irq(slice_num);
 
-void send_byte(uint8_t byte) {
+        if (!transfer) {
+            return;
+        }
 
-    for (int i=0; i<8; i++) {
-        send_bit(byte & 0x80);
-        byte <<= 1;
+        if (bit_index == 8) {
+            bit_index = 0;
+            byte_index++;
+            if (byte_index == byte_count) {
+                transfer = false;
+                pwm_set_gpio_level(PIN_TX, PWM_DUTY_SILENCE);
+                return;
+            }
+        }
+
+        uint bit = (bytes_to_send[byte_index] << bit_index) & 0x80;
+        pwm_set_gpio_level(PIN_TX,
+                           bit ? PWM_DUTY_ONE : PWM_DUTY_ZERO);
+        bit_index++;
     }
 }
 
 void send_bytes(uint8_t* bytes, int count) {
-    while (count--) {
-        send_byte(*bytes++);
-    }
+    memcpy((void*)bytes_to_send, (void*)bytes, count);
+    byte_count = count;
+    bit_index = 0;
+    byte_index = 0;
+    transfer = true;
+}
+
+void send_wait_for_end() {
+    while (transfer);
 }
 
 
@@ -125,7 +158,7 @@ int receive_bytes(uint8_t* bytes, int count) {
         }
         else {
             // silence detected
-            if (time_us_64() - last_good_byte > MAX_SILENCE_ALLOWED) {
+            if (time_us_64() - last_good_byte > MAX_SILENCE_ALLOWED_US) {
                 // silence too long
                 return -1;
             }
