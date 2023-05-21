@@ -28,6 +28,11 @@
 
 #include "lwip/ip_addr.h"
 
+// fixed using code from https://isocpp.org/wiki/faq/mixing-c-and-cpp
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define DHCPS_BASE_IP (16)
 #define DHCPS_MAX_IP (8)
 
@@ -46,5 +51,9 @@ typedef struct _dhcp_server_t {
 void dhcp_server_init(dhcp_server_t *d, ip_addr_t *ip, ip_addr_t *nm);
 void dhcp_server_deinit(dhcp_server_t *d);
 void test();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // MICROPY_INCLUDED_LIB_NETUTILS_DHCPSERVER_H

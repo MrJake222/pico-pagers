@@ -7,9 +7,8 @@
 #include "lwip/tcp.h"
 
 #include "physical.hpp"
-#include "dhcpserver/dhcpserver.h"
+#include "dhcpserver.h"
 #include "dnsserver.h"
-#include "dhcpserver/dhcpserver.h"
 
 // hardware UART on physical pins
 #define UART_ID uart0

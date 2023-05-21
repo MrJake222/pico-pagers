@@ -9,6 +9,11 @@
 
 #include "lwip/ip_addr.h"
 
+// fixed using code from https://isocpp.org/wiki/faq/mixing-c-and-cpp
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct dns_server_t_ {
     struct udp_pcb *udp;
      ip_addr_t ip;
@@ -16,5 +21,9 @@ typedef struct dns_server_t_ {
 
 void dns_server_init(dns_server_t *d, ip_addr_t *ip);
 void dns_server_deinit(dns_server_t *d);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
