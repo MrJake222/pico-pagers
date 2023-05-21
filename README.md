@@ -13,7 +13,9 @@ cd ..
 1. Compile the server
 ```bash
 cd pagers-server
-cmake -DPICO_BOARD=pico_w .
+mkdir build
+cd build
+cmake -DPICO_BOARD=pico_w ..
 make
 ```
 2. Upload code to the device:
