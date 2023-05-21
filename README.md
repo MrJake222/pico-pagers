@@ -1,5 +1,14 @@
 # Pico Pagers
 
+## SDK
+```
+git clone https://github.com/raspberrypi/pico-sdk.git --branch master
+cd pico-sdk
+git submodule update --init
+export PICO_SDK_PATH=../pico-sdk
+cd ..
+```
+
 ## Setup
 1. Compile the server
 ```bash

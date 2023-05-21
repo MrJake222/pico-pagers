@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <pico/stdlib.h>
+#include <pico/cyw43_arch.h>
 #include <hardware/uart.h>
 
 #include "physical.hpp"
@@ -12,6 +13,9 @@
 
 #include <protocol.hpp>
 
+char ssid[] = "1006A";
+char pass[] = "Michal123";
+
 int main() {
 
     // UART on USB
@@ -20,6 +24,20 @@ int main() {
     sleep_ms(2000);
     printf("\n\nHello usb pagers-server!\n");
     config_print();
+    sleep_ms(10000);
+
+    printf("cyw43 initialization...\n");
+    if (cyw43_arch_init_with_country(CYW43_COUNTRY_POLAND)) {
+        printf("cy43 init failed\n");
+        return 1;
+    };
+    printf("cyw43 initialised\n");
+
+    if (cyw43_arch_wifi_connect_timeout_ms(ssid, pass, CYW43_AUTH_WPA2_AES_PSK, 10000)) {
+        printf("failed to connect\n");
+        return 1;
+    }
+    printf("connected\n");
 
     // hardware UART
     /*uart_init(UART_ID, BAUD_RATE);
