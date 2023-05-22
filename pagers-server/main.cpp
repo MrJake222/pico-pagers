@@ -27,10 +27,25 @@
 #define HTTP_RESPONSE_REDIRECT "HTTP/1.1 302 Redirect\nLocation: http://%s" LED_TEST "\n\n"
 #define LED_PARAM "led=%d"
 
-#define HTML_HEADER "<html><body><h1>pagers-server.</h1><a href=\"?led=%d\">Turn led %s</a></body></html>"
+#define HTML_STYLE "<style> body { font-family: sans-serif; } h1 { font-size: 10vw; } li { font-size: 8vw; background-color: #e1e1e1; padding: 16px; list-style: none; } ul { padding: 0; } ul > li:nth-child(even) { background-color: #efefef; } li > a { color: white; text-decoration: none; background-color: green; padding: 8px; border-radius: 4px; } li > span { color: white; text-decoration: none; background-color: #535bf2; padding: 8px; border-radius: 100%; } </style>"
+#define HTML_HEADER "<html>%s<body><h1>pagers-server</h1><ul>%s</ul></body></html>"
+#define TURN_LED "<a href=\"?led=%d\">Turn led %s</a>"
+#define HTML_PAGER "<li><span>#%d</span> %s <a href=\"?pager=%d\">CALL</a></li>"
 
 char ap_name[] = "pagers-server";
 char ap_password[] = "password";
+
+typedef struct PagerDevice {
+    uint8_t id;
+    char name[16];
+    bool status;
+    bool isEnabled;
+} PagerDevice;
+
+PagerDevice pagers[16] = {
+        {0, "Pager 1", false, true},
+        {1, "Pager 2", false, true},
+};
 
 typedef struct TCP_SERVER_T_ {
     struct tcp_pcb *server_pcb;
@@ -42,7 +57,7 @@ typedef struct TCP_CONNECT_STATE_T_ {
     struct tcp_pcb *pcb;
     int sent_len;
     char headers[128];
-    char result[256];
+    char result[2048];
     int header_len;
     int result_len;
     ip_addr_t *gw;
@@ -98,7 +113,16 @@ static int test_server_content(const char *request, const char *params, char *re
 
             cyw43_gpio_set(&cyw43_state, 0, led_state);
         }
-        len = snprintf(result, max_result_len, HTML_HEADER, led_state == 0 ? 1 : 0, led_state == 0 ? "on" : "off");
+        // create list of pagers with call links and save it to pagers_html
+        char pagers_html[1024];
+        int pagers_len = 0;
+        for (int i = 0; i < sizeof(pagers) / sizeof(pagers[0]); i++) {
+            if (!pagers[i].isEnabled) {
+                continue;
+            }
+            pagers_len += snprintf(pagers_html + pagers_len, sizeof(pagers_html) - pagers_len, HTML_PAGER, pagers[i].id, pagers[i].name, pagers[i].id);
+        }
+        len = snprintf(result, max_result_len, HTML_HEADER, HTML_STYLE, pagers_html);
     }
     return len;
 }
