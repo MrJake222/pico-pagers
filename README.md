@@ -1,13 +1,5 @@
 # Pico Pagers
 
-<<<<<<< HEAD
-## Cloning
-Run: `git clone --recurse-submodules <this repo>`
-
-## Running
-||||||| 3ee43c7
-## Setup
-=======
 ## SDK
 ```
 git clone https://github.com/raspberrypi/pico-sdk.git --branch master
@@ -17,25 +9,18 @@ export PICO_SDK_PATH=../pico-sdk
 cd ..
 ```
 
-## Setup
->>>>>>> dhcp
+## Cloning
+Run: `git clone --recurse-submodules <this repo>`
+
+## Server
+### Running
 1. Compile the server
 ```bash
 cd pagers-server
-<<<<<<< HEAD
 mkdir build
 cd build
 cmake ..
 make -j4
-||||||| 3ee43c7
-cmake -DPICO_BOARD=pico_w .
-make
-=======
-mkdir build
-cd build
-cmake -DPICO_BOARD=pico_w ..
-make
->>>>>>> dhcp
 ```
 
 2. Upload code to the device:
@@ -44,7 +29,10 @@ make
 - Release the BOOTSEL button
 - Copy the `pagers-server.uf2` file to the Pico
 
-3. Connect to the Pico's serial port using USB
+3. Upload LittleFS image to device
+- In `pagers-server` folder run: `../lfs.sh lfs [openocd|picotool]`
+
+4. Connect to the Pico's serial port using USB
 **macOS**
 - Run `ls /dev/cu.*` to find the serial port
 - Run `screen SERIAL_PORT 115200` (replace the serial port with the one you found)

@@ -27,8 +27,15 @@ int main() {
     // sleep_ms(2000);
     printf("\n\nHello usb pagers-server!\n");
 
-    // Initialise the access point
+    int r = lfs_mount(&lfs, &pico_lfs_config);
+    if (r < 0) {
+        printf("failed to mount fs err=%d\n", r);
+        while(1);
+    }
 
+    puts("fs mount ok");
+
+    // Initialise the access point
     TCP_SERVER_T *state = static_cast<TCP_SERVER_T *>(calloc(1, sizeof(TCP_SERVER_T)));
     if (!state) {
         printf("failed to allocate state\n");
@@ -43,18 +50,25 @@ int main() {
     printf("cyw43 initialised\n");
 
     cyw43_arch_enable_ap_mode(ap_name, ap_password, CYW43_AUTH_WPA2_AES_PSK);
+    puts("ap init ok");
+
 
     ip4_addr_t mask;
     IP4_ADDR(ip_2_ip4(&state->gw), 192, 168, 4, 1);
     IP4_ADDR(ip_2_ip4(&mask), 255, 255, 255, 0);
 
+
     // Start the dhcp server
     dhcp_server_t dhcp_server;
     dhcp_server_init(&dhcp_server, &state->gw, &mask);
+    puts("dhcp server started");
+
 
     // Start the dns server
     dns_server_t dns_server;
     dns_server_init(&dns_server, &state->gw);
+    puts("dns server started");
+
 
     // Open the TCP server
     if (!tcp_server_open(state)) {
@@ -67,40 +81,6 @@ int main() {
      * REST OF THE CODE
      *
      */
-
-    int r = lfs_mount(&lfs, &pico_lfs_config);
-    if (r < 0) {
-        printf("failed to mount fs err=%d\n", r);
-        while(1);
-    }
-
-    puts("fs mount ok");
-
-    lfs_dir_t dir;
-    r = lfs_dir_open(&lfs, &dir, "/");
-    if (r < 0) {
-        printf("failed to open root dir err=%d\n", r);
-        while(1);
-    }
-
-    puts("listing files:");
-    lfs_info info;
-    while (1) {
-        r = lfs_dir_read(&lfs, &dir, &info);
-        if (r < 0) {
-            printf("failed to read root dir err=%d\n", r);
-            while(1);
-        }
-        if (r == 0) {
-            // end of dir
-            break;
-        }
-
-        // filled
-        printf("\t%s\n", info.name);
-    }
-
-    puts("done");
 
 
     struct proto_data data = {

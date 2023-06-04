@@ -240,16 +240,14 @@ static bool tcp_server_open(void *arg) {
 
     err_t err = tcp_bind(pcb, IP_ANY_TYPE, TCP_PORT);
     if (err) {
-        printf("failed to bind to port %d\n");
+        printf("failed to bind to port %d\n", TCP_PORT);
         return false;
     }
 
     state->server_pcb = tcp_listen_with_backlog(pcb, 1);
     if (!state->server_pcb) {
         printf("failed to listen\n");
-        if (pcb) {
-            tcp_close(pcb);
-        }
+        tcp_close(pcb);
         return false;
     }
 
