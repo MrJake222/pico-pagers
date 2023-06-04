@@ -4,12 +4,18 @@
 #include <lfs.h>
 #include <fs.hpp>
 
+#include <pico/cyw43_arch.h>
+
+#include "dhcpserver.h"
+#include "dnsserver.h"
+
 #include "physical.hpp"
 #include <protocol.hpp>
 
-// variables used by the filesystem
 lfs_t lfs;
 lfs_file_t file;
+
+#include "http/http.hpp"
 
 int main() {
 
@@ -20,7 +26,47 @@ int main() {
 
     // sleep_ms(2000);
     printf("\n\nHello usb pagers-server!\n");
-    config_print();
+
+    // Initialise the access point
+
+    TCP_SERVER_T *state = static_cast<TCP_SERVER_T *>(calloc(1, sizeof(TCP_SERVER_T)));
+    if (!state) {
+        printf("failed to allocate state\n");
+        return 1;
+    }
+
+    printf("cyw43 initialization...\n");
+    if (cyw43_arch_init_with_country(CYW43_COUNTRY_POLAND)) {
+        printf("cy43 init failed\n");
+        return 1;
+    };
+    printf("cyw43 initialised\n");
+
+    cyw43_arch_enable_ap_mode(ap_name, ap_password, CYW43_AUTH_WPA2_AES_PSK);
+
+    ip4_addr_t mask;
+    IP4_ADDR(ip_2_ip4(&state->gw), 192, 168, 4, 1);
+    IP4_ADDR(ip_2_ip4(&mask), 255, 255, 255, 0);
+
+    // Start the dhcp server
+    dhcp_server_t dhcp_server;
+    dhcp_server_init(&dhcp_server, &state->gw, &mask);
+
+    // Start the dns server
+    dns_server_t dns_server;
+    dns_server_init(&dns_server, &state->gw);
+
+    // Open the TCP server
+    if (!tcp_server_open(state)) {
+        printf("failed to open server\n");
+        return 1;
+    }
+
+    /**
+     *
+     * REST OF THE CODE
+     *
+     */
 
     int r = lfs_mount(&lfs, &pico_lfs_config);
     if (r < 0) {
@@ -86,6 +132,7 @@ int main() {
     while (1) {
         int cnt = CLOCK_SPEED_HZ * 1; // delay in seconds
         while (cnt--) send_silence();
+        printf("running\n");
 
 
         data.sequence_number++;

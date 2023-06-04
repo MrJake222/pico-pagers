@@ -1,16 +1,41 @@
 # Pico Pagers
 
+<<<<<<< HEAD
 ## Cloning
 Run: `git clone --recurse-submodules <this repo>`
 
 ## Running
+||||||| 3ee43c7
+## Setup
+=======
+## SDK
+```
+git clone https://github.com/raspberrypi/pico-sdk.git --branch master
+cd pico-sdk
+git submodule update --init
+export PICO_SDK_PATH=../pico-sdk
+cd ..
+```
+
+## Setup
+>>>>>>> dhcp
 1. Compile the server
 ```bash
 cd pagers-server
+<<<<<<< HEAD
 mkdir build
 cd build
 cmake ..
 make -j4
+||||||| 3ee43c7
+cmake -DPICO_BOARD=pico_w .
+make
+=======
+mkdir build
+cd build
+cmake -DPICO_BOARD=pico_w ..
+make
+>>>>>>> dhcp
 ```
 
 2. Upload code to the device:
