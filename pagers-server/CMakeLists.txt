@@ -22,6 +22,8 @@ add_executable(${PROJECT_NAME}
         main.cpp
         dhcpserver/dhcpserver.c
         dnsserver/dnsserver.c
+        http/httpserver.cpp
+        http/httpserverclient.cpp
 )
 
 pico_add_extra_outputs(${PROJECT_NAME})

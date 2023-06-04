@@ -111,7 +111,7 @@ static int test_server_content(const char *request, const char *params, char *re
 }
 
 
-err_t tcp_server_recv(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err) {
+err_t tcp_client_recv(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err) {
     TCP_CONNECT_STATE_T *con_state = (TCP_CONNECT_STATE_T*)arg;
     if (!p) {
         printf("connection closed\n");
@@ -119,7 +119,7 @@ err_t tcp_server_recv(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err)
     }
     assert(con_state && con_state->pcb == pcb);
     if (p->tot_len > 0) {
-        printf("tcp_server_recv %d err %d\n", p->tot_len, err);
+        printf("tcp_client_recv %d err %d\n", p->tot_len, err);
 #if 0
         for (struct pbuf *q = p; q != NULL; q = q->next) {
             printf("in: %.*s\n", q->len, q->payload);
@@ -193,7 +193,7 @@ err_t tcp_server_recv(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err)
     return ERR_OK;
 }
 
-static void tcp_server_err(void *arg, err_t err) {
+static void tcp_client_err(void *arg, err_t err) {
     TCP_CONNECT_STATE_T *con_state = (TCP_CONNECT_STATE_T*)arg;
     if (err != ERR_ABRT) {
         printf("tcp_client_err_fn %d\n", err);
@@ -221,9 +221,9 @@ static err_t tcp_server_accept(void *arg, struct tcp_pcb *client_pcb, err_t err)
     // setup connection to client
     tcp_arg(client_pcb, con_state);
     tcp_sent(client_pcb, tcp_server_sent);
-    tcp_recv(client_pcb, tcp_server_recv);
+    tcp_recv(client_pcb, tcp_client_recv);
     tcp_poll(client_pcb, tcp_server_poll, POLL_TIME_S * 2);
-    tcp_err(client_pcb, tcp_server_err);
+    tcp_err(client_pcb, tcp_client_err);
 
     return ERR_OK;
 }

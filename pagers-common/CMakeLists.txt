@@ -10,7 +10,8 @@ add_library(pagers-common STATIC
         physical.cpp crc.cpp
         lfs/lfs.c
         lfs/lfs_util.c
-        fs.cpp)
+        fs.cpp
+        circularbuffer.cpp)
 
 target_link_libraries(${PROJECT_NAME}
         pico_stdlib

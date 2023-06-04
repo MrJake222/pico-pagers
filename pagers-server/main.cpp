@@ -15,7 +15,8 @@
 lfs_t lfs;
 lfs_file_t file;
 
-#include "http/http.hpp"
+// #include "http/http.hpp"
+#include "http/httpserver.hpp"
 
 int main() {
 
@@ -36,12 +37,6 @@ int main() {
     puts("fs mount ok");
 
     // Initialise the access point
-    TCP_SERVER_T *state = static_cast<TCP_SERVER_T *>(calloc(1, sizeof(TCP_SERVER_T)));
-    if (!state) {
-        printf("failed to allocate state\n");
-        return 1;
-    }
-
     printf("cyw43 initialization...\n");
     if (cyw43_arch_init_with_country(CYW43_COUNTRY_POLAND)) {
         printf("cy43 init failed\n");
@@ -49,32 +44,34 @@ int main() {
     };
     printf("cyw43 initialised\n");
 
+    char ap_name[] = "pagers-server";
+    char ap_password[] = "password";
+
     cyw43_arch_enable_ap_mode(ap_name, ap_password, CYW43_AUTH_WPA2_AES_PSK);
     puts("ap init ok");
 
 
+    ip4_addr_t gw;
     ip4_addr_t mask;
-    IP4_ADDR(ip_2_ip4(&state->gw), 192, 168, 4, 1);
+    IP4_ADDR(ip_2_ip4(&gw), 192, 168, 4, 1);
     IP4_ADDR(ip_2_ip4(&mask), 255, 255, 255, 0);
 
 
     // Start the dhcp server
     dhcp_server_t dhcp_server;
-    dhcp_server_init(&dhcp_server, &state->gw, &mask);
+    dhcp_server_init(&dhcp_server, &gw, &mask);
     puts("dhcp server started");
 
 
     // Start the dns server
     dns_server_t dns_server;
-    dns_server_init(&dns_server, &state->gw);
+    dns_server_init(&dns_server, &gw);
     puts("dns server started");
 
 
     // Open the TCP server
-    if (!tcp_server_open(state)) {
-        printf("failed to open server\n");
-        return 1;
-    }
+    HttpServer server;
+    server.start(80);
 
     /**
      *
