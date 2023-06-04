@@ -16,7 +16,7 @@ if [[ $2 == "openocd" ]]; then
 
 elif [[ $2 == "picotool" ]]; then
 	# untested
-	picotool load -o 0x101F0000 lfs.bin
+	picotool load -o 0x101F0000 lfs.bin -f
 fi
 
 rm lfs.bin

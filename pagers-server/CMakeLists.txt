@@ -32,6 +32,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}/.
         ${CMAKE_CURRENT_LIST_DIR}/dhcpserver
         ${CMAKE_CURRENT_LIST_DIR}/dnsserver
+        ${CMAKE_CURRENT_LIST_DIR}/http
+        ${CMAKE_CURRENT_LIST_DIR}/json
 )
 
 target_link_libraries(${PROJECT_NAME}

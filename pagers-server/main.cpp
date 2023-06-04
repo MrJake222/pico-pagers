@@ -16,7 +16,22 @@ lfs_t lfs;
 lfs_file_t file;
 
 // #include "http/http.hpp"
-#include "http/httpserver.hpp"
+#include "httpserver.hpp"
+#include "ArduinoJson.h"
+
+void root(HttpServerClient* client, void* arg) {
+    client->response_ok("<h1>OK</h1>");
+}
+
+char jbuf[8*1024];
+DynamicJsonDocument json(8*1024);
+
+void json_test_page(HttpServerClient* client, void* arg) {
+    json.clear();
+    json["val"] = 123;
+    json["key"] = "value";
+    client->response_json(json, jbuf, 8*1024);
+}
 
 int main() {
 
@@ -72,6 +87,9 @@ int main() {
     // Open the TCP server
     HttpServer server;
     server.start(80);
+    server.static_content(&lfs, "/static");
+    server.on(Method::GET, "/root", root);
+    server.on(Method::GET, "/json", json_test_page);
 
     /**
      *
