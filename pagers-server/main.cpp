@@ -1,33 +1,61 @@
 #include <stdio.h>
 #include <pico/stdlib.h>
-#include <hardware/uart.h>
+
+#include <lfs.h>
+#include <fs.hpp>
 
 #include "physical.hpp"
-
-// hardware UART on physical pins
-#define UART_ID uart0
-#define BAUD_RATE 9600
-#define UART_TX_PIN 0
-#define UART_RX_PIN 1
-
 #include <protocol.hpp>
+
+// variables used by the filesystem
+lfs_t lfs;
+lfs_file_t file;
 
 int main() {
 
     // UART on USB
-    stdio_usb_init();
+    // stdio_usb_init();
+    // UART on all
+    stdio_init_all();
 
-    sleep_ms(2000);
+    // sleep_ms(2000);
     printf("\n\nHello usb pagers-server!\n");
     config_print();
 
-    // hardware UART
-    /*uart_init(UART_ID, BAUD_RATE);
-    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
-    gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);*/
+    int r = lfs_mount(&lfs, &pico_lfs_config);
+    if (r < 0) {
+        printf("failed to mount fs err=%d\n", r);
+        while(1);
+    }
 
-    // printf writes to USB only
-    // uart_* write to pin GP(UART_TX_PIN) only
+    puts("fs mount ok");
+
+    lfs_dir_t dir;
+    r = lfs_dir_open(&lfs, &dir, "/");
+    if (r < 0) {
+        printf("failed to open root dir err=%d\n", r);
+        while(1);
+    }
+
+    puts("listing files:");
+    lfs_info info;
+    while (1) {
+        r = lfs_dir_read(&lfs, &dir, &info);
+        if (r < 0) {
+            printf("failed to read root dir err=%d\n", r);
+            while(1);
+        }
+        if (r == 0) {
+            // end of dir
+            break;
+        }
+
+        // filled
+        printf("\t%s\n", info.name);
+    }
+
+    puts("done");
+
 
     struct proto_data data = {
             .sequence_number = 0, //0xCAFEDEADBEEFCAFE,

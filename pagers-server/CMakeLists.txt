@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.13)
 
+# pico w project
+set(PICO_BOARD pico_w)
+
 # pico sdk
 include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 
@@ -25,6 +28,6 @@ target_link_libraries(${PROJECT_NAME}
         pagers-common   # common code
 )
 
-# enable only usb stdio functions
+# enable usb+uart stdio functions
 pico_enable_stdio_usb(${PROJECT_NAME} 1)
-pico_enable_stdio_uart(${PROJECT_NAME} 0)
+pico_enable_stdio_uart(${PROJECT_NAME} 1)
