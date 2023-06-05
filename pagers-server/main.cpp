@@ -11,6 +11,7 @@
 
 #include "physical.hpp"
 #include <protocol.hpp>
+#include <hardware/pwm.h>
 
 lfs_t lfs;
 lfs_file_t file;
@@ -55,8 +56,9 @@ int main() {
     // UART on all
     stdio_init_all();
 
-    // sleep_ms(2000);
+    sleep_ms(2000);
     printf("\n\nHello usb pagers-server!\n");
+    config_print();
 
     int r = lfs_mount(&lfs, &pico_lfs_config);
     if (r < 0) {
@@ -143,6 +145,7 @@ int main() {
     printf("sizeof proto_frame %u\n", sizeof(struct proto_frame));
 
     while (1) {
+        puts("running");
         sleep_ms(1000);
 
         data.sequence_number++;
@@ -152,6 +155,5 @@ int main() {
 
         send_bytes((uint8_t*)&frame, PROTO_FRAME_SIZE);
         send_wait_for_end();
-        sleep_us(MIN_SILENCE_GENERATED_US * 10); // todo remove *10
     }
 }

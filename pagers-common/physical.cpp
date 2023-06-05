@@ -9,28 +9,28 @@
 #include "hardware/irq.h"
 
 void config_print() {
-    printf("physical interface config:\n");
-    printf("CYCLE_TIME_US : %d\n", CYCLE_TIME_US);
-    printf("SILENCE_LOW_TIME_US : %d\n", SILENCE_LOW_TIME_US);
-    printf("SILENCE_HIGH_TIME_US : %d\n", SILENCE_HIGH_TIME_US);
-    printf("ZERO_LOW_TIME_US : %d\n", ZERO_LOW_TIME_US);
-    printf("ZERO_HIGH_TIME_US : %d\n", ZERO_HIGH_TIME_US);
-    printf("ONE_LOW_TIME_US : %d\n", ONE_LOW_TIME_US);
-    printf("ONE_HIGH_TIME_US : %d\n", ONE_HIGH_TIME_US);
-    printf("ZERO_LOW_TIME_MARGIN : %d\n", ZERO_LOW_TIME_MARGIN);
-    printf("ONE_LOW_TIME_MARGIN : %d\n\n", ONE_LOW_TIME_MARGIN);
+    printf("physical interface config [us]:\n");
+    printf("CYCLE_TIME_US       : %d\n", CYCLE_TIME_US);
+    printf("PWM_TOP             : %d\n", PWM_TOP);
+    printf("PWM_DUTY_SILENCE    : %d\n", PWM_DUTY_SILENCE);
+    printf("PWM_DUTY_ZERO       : %d\n", PWM_DUTY_ZERO);
+    printf("PWM_DUTY_ONE        : %d\n", PWM_DUTY_ONE);
+    printf("zero is (%4d, %4d)\n", 0, PWM_DUTY_ZERO_MAX);
+    printf(" one is (%4d, %4d)\n", PWM_DUTY_ONE_MIN, PWM_TOP);
+    printf("SPACING_GENERATED_US    : %d\n", SPACING_GENERATED_US);
+    printf("SPACING_ALLOWED_US_MAX  : %d\n", SPACING_ALLOWED_US_MAX);
 }
 
 // ------------------------------------ SENDING ------------------------------------ //
 
 void pwm_wrap_irq();
 
-uint slice_num;
+uint slice_tx;
 
 void send_setup() {
     gpio_set_function(PIN_TX, GPIO_FUNC_PWM);
 
-    slice_num = pwm_gpio_to_slice_num(PIN_TX);
+    slice_tx = pwm_gpio_to_slice_num(PIN_TX);
 
     pwm_config c = pwm_get_default_config();
     pwm_config_set_wrap(&c, PWM_TOP);
@@ -42,129 +42,138 @@ void send_setup() {
     // If we ever want to use another PWM wrap handler, adjust this
     irq_set_exclusive_handler(PWM_IRQ_WRAP, pwm_wrap_irq);
     irq_set_enabled(PWM_IRQ_WRAP, true);
-    pwm_set_irq_enabled(slice_num, true);
+    pwm_set_irq_enabled(slice_tx, true);
 
+    pwm_init(slice_tx, &c, false); // this zeroes out levels.
+                                          // level setup needs to be lower.
     pwm_set_gpio_level(PIN_TX, PWM_DUTY_SILENCE);
-    pwm_init(slice_num, &c, true);
+    pwm_set_enabled(slice_tx, true);
 
     puts("PWM started");
 }
 
-volatile uint8_t bytes_to_send[BYTE_BUFFER_SIZE];
-volatile uint byte_count;
-volatile uint bit_index;
-volatile uint byte_index;
-volatile bool transfer = false;
+volatile uint8_t tx_bytes[BYTE_BUFFER_SIZE];
+volatile uint tx_byte_count;
+volatile uint tx_bit_index;
+volatile uint tx_byte_index;
+volatile bool tx_transfer = false;
 
 void pwm_wrap_irq() {
-    if (pwm_get_irq_status_mask() & (1<<slice_num)) {
-        pwm_clear_irq(slice_num);
+    if (pwm_get_irq_status_mask() & (1 << slice_tx)) {
+        pwm_clear_irq(slice_tx);
 
-        if (!transfer) {
+        if (!tx_transfer) {
             return;
         }
 
-        if (bit_index == 8) {
-            bit_index = 0;
-            byte_index++;
-            if (byte_index == byte_count) {
-                transfer = false;
+        if (tx_bit_index == 8) {
+            tx_bit_index = 0;
+            tx_byte_index++;
+            if (tx_byte_index == tx_byte_count) {
+                tx_transfer = false;
                 pwm_set_gpio_level(PIN_TX, PWM_DUTY_SILENCE);
                 return;
             }
         }
 
-        uint bit = (bytes_to_send[byte_index] << bit_index) & 0x80;
+        uint bit = (tx_bytes[tx_byte_index] << tx_bit_index) & 0x80;
         pwm_set_gpio_level(PIN_TX,
                            bit ? PWM_DUTY_ONE : PWM_DUTY_ZERO);
-        bit_index++;
+        tx_bit_index++;
     }
 }
 
 void send_bytes(uint8_t* bytes, int count) {
-    memcpy((void*)bytes_to_send, (void*)bytes, count);
-    byte_count = count;
-    bit_index = 0;
-    byte_index = 0;
-    transfer = true;
+    memcpy((void*)tx_bytes, (void*)bytes, count);
+    tx_byte_count = count;
+    tx_bit_index = 0;
+    tx_byte_index = 0;
+    tx_transfer = true;
 }
 
 void send_wait_for_end() {
-    while (transfer);
+    while (tx_transfer);
+    sleep_us(SPACING_GENERATED_US);
 }
 
 
 // ------------------------------------ RECEIVING ------------------------------------ //
 
+uint slice_rx;
+
+void rx_fall_callback(uint gpio, uint32_t events);
+
 void receive_setup() {
-    gpio_init(PIN_RX);
+    // gpio_init(PIN_RX);
     gpio_set_dir(PIN_RX, GPIO_IN);
+    gpio_set_irq_enabled_with_callback(PIN_RX, GPIO_IRQ_EDGE_FALL, true, rx_fall_callback);
+
+    gpio_set_function(PIN_RX, GPIO_FUNC_PWM);
+
+    slice_rx = pwm_gpio_to_slice_num(PIN_RX);
+
+    pwm_config c = pwm_get_default_config();
+    pwm_config_set_wrap(&c, PWM_TOP);
+
+    uint sysclk = clock_get_hz(clk_sys);
+    float div = (float)sysclk / (float)(CLOCK_SPEED_HZ * PWM_TOP);
+    pwm_config_set_clkdiv(&c, div);
+    pwm_config_set_clkdiv_mode(&c, PWM_DIV_B_HIGH);
+
+    pwm_init(slice_rx, &c, true);
+    puts("PWM started");
 }
 
-int receive_bit(uint8_t* bit) {
-    // wait for falling
-    while (gpio_get(PIN_RX) != 0);
+uint64_t last_good_bit;
 
-    // wait for rising + measure time of low state
-    uint64_t time_start = time_us_64();
-    while (gpio_get(PIN_RX) == 0);
+volatile uint8_t rx_bytes[BYTE_BUFFER_SIZE];
+volatile uint rx_bit_index;
+volatile uint rx_byte_index;
 
-    int us = (int)(time_us_64() - time_start);
+RxCallback cb;
 
-    // zero for <us> ms
-    if (us < ONE_LOW_TIME_MARGIN) {
-        *bit = 1;
+void rx_fall_callback(uint gpio, uint32_t events) {
+    gpio_acknowledge_irq(gpio, events);
+    uint cnt = pwm_get_counter(slice_rx);
+    pwm_set_counter(slice_rx, 0);
+
+    uint64_t now = time_us_64();
+
+    int bit;
+    if (cnt < PWM_DUTY_ZERO_MAX) {
+        bit = 0;
     }
-    else if (us < ZERO_LOW_TIME_MARGIN) {
-        // silence
-        return -1;
+    else if (cnt > PWM_DUTY_ONE_MIN) {
+        bit = 1;
     }
     else {
-        *bit = 0;
+        // silence
+        bit = -1;
+        if (now - last_good_bit > SPACING_ALLOWED_US_MAX) {
+            // end of frame
+            if (rx_byte_index > 0)
+                cb(rx_bytes, rx_byte_index);
+
+            rx_byte_index = 0;
+            rx_bit_index = 0;
+        }
     }
 
-    return 0;
+    if (bit != -1) {
+        last_good_bit = now;
+        // printf("cnt: %4d -> bit %2d\n", cnt, bit);
+
+        rx_bytes[rx_byte_index] <<= 1;
+        rx_bytes[rx_byte_index] ^= (-bit ^ rx_bytes[rx_byte_index]) & 1UL;
+
+        rx_bit_index++;
+        if (rx_bit_index == 8) {
+            rx_bit_index = 0;
+            rx_byte_index++;
+        }
+    }
 }
 
-int receive_byte(uint8_t *byte) {
-
-    *byte = 0;
-
-    for (int i=0; i<8; i++) {
-        uint8_t bit;
-        int err = receive_bit(&bit);
-        if (err) {
-            return err;
-        }
-
-        *byte <<= 1;
-        *byte += bit;
-    }
-
-    return 0;
-}
-
-int receive_bytes(uint8_t* bytes, int count) {
-
-    uint64_t last_good_byte = time_us_64();
-
-    while (count) {
-        // intentionally wait for all bytes, ignoring short interruptions
-        int err = receive_byte(bytes);
-        if (err == 0) {
-            count--;
-            bytes++; // advance pointer
-            last_good_byte = time_us_64();
-        }
-        else {
-            // silence detected
-            if (time_us_64() - last_good_byte > MAX_SILENCE_ALLOWED_US) {
-                // silence too long
-                return -1;
-            }
-            // if not too long -> ignore for now
-        }
-    }
-
-    return 0;
+void rx_set_callback(RxCallback cb_) {
+    cb = cb_;
 }

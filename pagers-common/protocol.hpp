@@ -21,7 +21,7 @@ struct proto_data {
 };
 
 #define PROTO_DATA_SIZE sizeof(struct proto_data)
-#define PROTO_CHECKSUM_SIZE sizeof(int)
+#define PROTO_CHECKSUM_SIZE sizeof(short)
 
 // this will be sent as is
 struct proto_frame {

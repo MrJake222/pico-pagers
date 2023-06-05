@@ -1,15 +1,16 @@
 #pragma once
 
 #include <cstdint>
+#include <pico/platform.h>
 
 // settings
 
 // max bytes to send in one send_bytes call
 #define BYTE_BUFFER_SIZE 128
 
-const int CLOCK_SPEED_HZ = 1000; // anything beyond this loses packets (todo refactor receiver)
+const int CLOCK_SPEED_HZ = 1000; // anything beyond 7200 loses impulses
 const int PIN_TX = 15;
-const int PIN_RX = 16;
+const int PIN_RX = 17; // must be odd (PWM channel B)
 
 
 // private defines
@@ -18,35 +19,29 @@ const int CYCLE_TIME_US = 1000000 / CLOCK_SPEED_HZ;
 // Config
 const int SUB_CYCLES = 6;
 const int SUB_CYCLES_HIGH_SILENCE = 3;
+// transmitter
 const int SUB_CYCLES_HIGH_ZERO = 1;
 const int SUB_CYCLES_HIGH_ONE = 5;
+// receiver allowed
+const int SUB_CYCLES_HIGH_ZERO_MAX = 2;
+const int SUB_CYCLES_HIGH_ONE_MIN = 4;
 
 // PWM
 const int PWM_TOP = 1024;
 const int PWM_DUTY_SILENCE = PWM_TOP * SUB_CYCLES_HIGH_SILENCE / SUB_CYCLES;
+// transmitter
 const int PWM_DUTY_ZERO = PWM_TOP * SUB_CYCLES_HIGH_ZERO / SUB_CYCLES;
 const int PWM_DUTY_ONE = PWM_TOP * SUB_CYCLES_HIGH_ONE / SUB_CYCLES;
+// receiver allowed
+const int PWM_DUTY_ZERO_MAX = PWM_TOP * SUB_CYCLES_HIGH_ZERO_MAX / SUB_CYCLES;
+const int PWM_DUTY_ONE_MIN = PWM_TOP * SUB_CYCLES_HIGH_ONE_MIN / SUB_CYCLES;
 
 // transfers spacing
-const int MAX_SILENCE_ALLOWED_US = CYCLE_TIME_US * 10; // char times
-const int MIN_SILENCE_GENERATED_US = MAX_SILENCE_ALLOWED_US * 2; // char times
+const int SPACING_GENERATED_US   = CYCLE_TIME_US * 20; // char times
+const int SPACING_ALLOWED_US_MAX = CYCLE_TIME_US * 10; // char times
 
-
-// legacy
-const int SUB_CYCLE_TIME_US = CYCLE_TIME_US / SUB_CYCLES;
-// tx
-const int SILENCE_LOW_TIME_US = SUB_CYCLE_TIME_US * (SUB_CYCLES - SUB_CYCLES_HIGH_SILENCE);
-const int SILENCE_HIGH_TIME_US = SUB_CYCLE_TIME_US * SUB_CYCLES_HIGH_SILENCE;
-const int ZERO_LOW_TIME_US = SUB_CYCLE_TIME_US * (SUB_CYCLES - SUB_CYCLES_HIGH_ZERO);
-const int ZERO_HIGH_TIME_US = SUB_CYCLE_TIME_US * SUB_CYCLES_HIGH_ZERO;
-const int ONE_LOW_TIME_US = SUB_CYCLE_TIME_US * (SUB_CYCLES - SUB_CYCLES_HIGH_ONE);
-const int ONE_HIGH_TIME_US = SUB_CYCLE_TIME_US * SUB_CYCLES_HIGH_ONE;
-// rx
-const int ZERO_LOW_TIME_MARGIN = (ZERO_LOW_TIME_US + SILENCE_LOW_TIME_US) / 2;
-const int ONE_LOW_TIME_MARGIN = (ONE_LOW_TIME_US + SILENCE_LOW_TIME_US) / 2;
 
 // TODO make a class for different pins
-// TODO refactor this into interrupts
 
 // config
 void config_print();
@@ -59,8 +54,6 @@ void send_bytes(uint8_t* bytes, int count);
 void send_wait_for_end();
 
 // receiving
-// returns -1 on silence received, 0 on success
+typedef void(*RxCallback)(const volatile uint8_t* buf, volatile uint bytes);
 void receive_setup();
-int receive_bit(bool* bit);
-int receive_byte(uint8_t* byte);
-int receive_bytes(uint8_t* bytes, int count);
+void rx_set_callback(RxCallback cb_);
