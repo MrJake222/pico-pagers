@@ -9,12 +9,15 @@
 
 enum class Method {
     GET,
-    INVALID
+    POST,
+    INVALID,
 };
 
 class HttpServer;
 
 class HttpServerClient {
+
+    using MapStrings = std::map<std::string, std::string>;
 
     tcp_pcb* const pcb;
     CircularBuffer buf;
@@ -22,8 +25,10 @@ class HttpServerClient {
     bool first_line = true;
     Method method;
     char req_path[1024];
+    MapStrings request_headers;
+    MapStrings request_params;
 
-    std::map<std::string, std::string> headers;
+    MapStrings response_headers;
     int sent = 0;
     int should_send = 0;
 
@@ -40,8 +45,12 @@ public:
     Method get_method() { return method; }
     const char* get_path() { return req_path; }
 
+    // returns char read
+    int parse_url_arguments(const char* ptr);
+    int parse_header(const char* ptr);
     void recv_data(struct pbuf *p);
     int recv_line();
+    void handle_body();
 
     err_t flush();
     err_t close();
@@ -53,9 +62,17 @@ public:
     void not_found();
 
     // to be called from callbacks
-    void set_header(const char* name, const char* val) { headers[name] = val; }
-    void set_content_length(int len) { headers["Content-length"] = std::to_string(len); }
-    void set_content_type(const char* type) { headers["Content-type"] = type; }
+    MapStrings get_req_headers() { return request_headers; }
+    bool has_req_header(const std::string& hdr) { return request_headers.count(hdr) > 0; }
+    std::string get_req_header(const std::string& hdr) { return request_headers.at(hdr); }
+
+    MapStrings get_req_params() { return request_params; }
+    bool has_req_param(const std::string& p) { return request_params.count(p) > 0; }
+    std::string get_req_param(const std::string& p) { return request_params.at(p); }
+
+    void set_header(const char* name, const char* val) { response_headers[name] = val; }
+    void set_content_length(int len) { response_headers["Content-Length"] = std::to_string(len); }
+    void set_content_type(const char* type) { response_headers["Content-Type"] = type; }
     void set_json() { set_content_type("application/json"); }
 
     void response_ok(const char* str);

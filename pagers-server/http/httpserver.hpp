@@ -23,6 +23,7 @@ private:
     bool try_static(HttpServerClient* client, const char* req_path);
 
 public:
+    void set_cb_arg(void* arg) { cb_arg = arg; }
 
     // used by callbacks
     void handle_request(HttpServerClient* client, Method method, const char* path);

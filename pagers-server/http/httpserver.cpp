@@ -3,7 +3,11 @@
 #include <cstdio>
 #include <pico/cyw43_arch.h>
 
-static err_t tcp_close_client_connection(ClientPtr client, err_t close_err) {
+static err_t tcp_close_client_connection(struct tcp_pcb *pcb, ClientPtr client, err_t close_err) {
+    if (pcb) {
+        tcp_arg(pcb, nullptr);
+    }
+
     if (client) {
         close_err = client->close();
         delete client;
@@ -15,11 +19,12 @@ static err_t tcp_close_client_connection(ClientPtr client, err_t close_err) {
 static err_t tcp_server_sent(void *arg, struct tcp_pcb *pcb, u16_t len) {
     auto client = (ClientPtr)arg;
 
-    client->send_ack(len);
-    if (client->send_finished()) {
-        puts("closed");
-        client->close();
-        tcp_close_client_connection(client, ERR_OK);
+    if (client) {
+        client->send_ack(len);
+        if (client->send_finished()) {
+            puts("closed sent all");
+            tcp_close_client_connection(pcb, client, ERR_OK);
+        }
     }
 
     return ERR_OK;
@@ -28,10 +33,10 @@ static err_t tcp_server_sent(void *arg, struct tcp_pcb *pcb, u16_t len) {
 err_t tcp_client_recv(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err) {
     auto client = (ClientPtr)arg;
 
-    if (p == nullptr) {
+    if (!p || !client) {
         // client closed the connection
-        puts("closed");
-        tcp_close_client_connection(client, err);
+        puts("closed p null or client null");
+        tcp_close_client_connection(pcb, client, err);
         return ERR_ABRT;
     }
 
@@ -47,13 +52,15 @@ err_t tcp_client_recv(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err)
             if (len < 0) {
                 // error
             }
-            else if (len == 0) {
-                // finished
-                client->server->handle_request(client, client->get_method(), client->get_path());
-            }
             else {
                 // processed the line
                 tcp_recved(pcb, len);
+
+                if (len == 2) {
+                    // only \r\n
+                    // finished
+                    client->server->handle_request(client, client->get_method(), client->get_path());
+                }
             }
         }
     }
@@ -66,7 +73,7 @@ static void tcp_client_err(void *arg, err_t err) {
     auto client = (ClientPtr)arg;
     if (err != ERR_ABRT) {
         printf("tcp_client_err_fn %d\n", err);
-        tcp_close_client_connection(client, err);
+        tcp_close_client_connection(nullptr, client, err);
     }
 }
 
@@ -163,6 +170,7 @@ bool HttpServer::try_static(HttpServerClient* client, const char* req_path) {
 }
 
 void HttpServer::handle_request(HttpServerClient* client, Method method, const char* path) {
+    client->handle_body();
     CbKey key = std::make_pair(method, path);
 
     if (paths.count(key) != 0) {

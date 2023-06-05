@@ -33,6 +33,22 @@ void json_test_page(HttpServerClient* client, void* arg) {
     client->response_json(json, jbuf, 8*1024);
 }
 
+void form_test_page(HttpServerClient* client, void* arg) {
+    puts("headers:");
+    for (auto h : client->get_req_headers()) {
+        printf("\t%s: %s\n", h.first.c_str(), h.second.c_str());
+    }
+    puts("headers end");
+
+    puts("params:");
+    for (auto p : client->get_req_params()) {
+        printf("\t%s: %s\n", p.first.c_str(), p.second.c_str());
+    }
+    puts("end params");
+
+    client->response_ok("ok");
+}
+
 int main() {
 
     // UART on USB
@@ -86,10 +102,13 @@ int main() {
 
     // Open the TCP server
     HttpServer server;
+    server.set_cb_arg(nullptr);
     server.start(80);
     server.static_content(&lfs, "/static");
     server.on(Method::GET, "/root", root);
     server.on(Method::GET, "/json", json_test_page);
+    server.on(Method::GET, "/form", form_test_page);
+    server.on(Method::POST, "/form", form_test_page);
 
     /**
      *
