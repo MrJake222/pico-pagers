@@ -15,7 +15,10 @@ volatile struct proto_frame frame;
 void frame_received(const volatile uint8_t* buf, uint bytes) {
     if (!frame_present) {
         if (bytes != PROTO_DATA_SIZE) {
-            puts("wrong number of bytes to decode");
+            printf("wrong number of bytes to decode, is %d, should be %d: ", bytes, PROTO_DATA_SIZE);
+            for (int i=0; i<bytes; i++)
+                printf("%02x ", buf[i]);
+            puts("");
             return;
         }
 

@@ -10,11 +10,11 @@
 
 void config_print() {
     printf("physical interface config [us]:\n");
-    printf("CYCLE_TIME_US       : %d\n", CYCLE_TIME_US);
-    printf("PWM_TOP             : %d\n", PWM_TOP);
-    printf("PWM_DUTY_SILENCE    : %d\n", PWM_DUTY_SILENCE);
-    printf("PWM_DUTY_ZERO       : %d\n", PWM_DUTY_ZERO);
-    printf("PWM_DUTY_ONE        : %d\n", PWM_DUTY_ONE);
+    printf("CYCLE_TIME_US       : %4d [us]\n", CYCLE_TIME_US);
+    printf("PWM_TOP             : %4d\n", PWM_TOP);
+    printf("PWM_DUTY_SILENCE    : %4d (%4d us high)\n", PWM_DUTY_SILENCE, CYCLE_TIME_US * PWM_DUTY_SILENCE  / PWM_TOP);
+    printf("PWM_DUTY_ZERO       : %4d (%4d us high)\n", PWM_DUTY_ZERO,    CYCLE_TIME_US * PWM_DUTY_ZERO     / PWM_TOP);
+    printf("PWM_DUTY_ONE        : %4d (%4d us high)\n", PWM_DUTY_ONE,     CYCLE_TIME_US * PWM_DUTY_ONE      / PWM_TOP);
     printf("zero is (%4d, %4d)\n", 0, PWM_DUTY_ZERO_MAX);
     printf(" one is (%4d, %4d)\n", PWM_DUTY_ONE_MIN, PWM_TOP);
     printf("SPACING_GENERATED_US    : %d\n", SPACING_GENERATED_US);
