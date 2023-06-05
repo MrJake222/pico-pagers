@@ -15,7 +15,6 @@
 lfs_t lfs;
 lfs_file_t file;
 
-// #include "http/http.hpp"
 #include "httpserver.hpp"
 #include "ArduinoJson.h"
 
