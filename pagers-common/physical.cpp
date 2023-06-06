@@ -170,6 +170,10 @@ void rx_fall_callback(uint gpio, uint32_t events) {
         if (rx_bit_index == 8) {
             rx_bit_index = 0;
             rx_byte_index++;
+            if (rx_byte_index == BYTE_BUFFER_SIZE) {
+                puts("discarding data, buffer overflow");
+                rx_byte_index = 0;
+            }
         }
     }
 }

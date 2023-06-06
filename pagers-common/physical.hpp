@@ -8,7 +8,7 @@
 // max bytes to send in one send_bytes call
 #define BYTE_BUFFER_SIZE 128
 
-const int CLOCK_SPEED_HZ = 2400; // anything beyond 2400 loses impulses (see docs/img/bauds)
+const int CLOCK_SPEED_HZ = 2400; // anything beyond 2400 (or 4800 with tuning) loses impulses (see docs/img/bauds)
 const int PIN_TX = 15;
 const int PIN_RX = 17; // must be odd (PWM channel B)
 

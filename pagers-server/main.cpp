@@ -145,8 +145,8 @@ int main() {
     printf("sizeof proto_frame %u\n", sizeof(struct proto_frame));
 
     while (1) {
-        puts("running");
-        sleep_ms(1000);
+        // puts("running");
+        sleep_ms(250);
 
         data.sequence_number++;
 

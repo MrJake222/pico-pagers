@@ -1,0 +1,169 @@
+\documentclass[12pt]{article}
+
+\usepackage{amssymb} % symbol kąta
+\usepackage[polish]{babel} % polskie nazwy
+\usepackage[T1]{fontenc} % polskie znaki
+\usepackage[margin=1.0in]{geometry} % marginesy
+\usepackage[utf8]{inputenc}
+\usepackage{listingsutf8} % bloki kodu
+\usepackage{color} % kolory
+\usepackage{indentfirst} % wcięcie w pierwszej linii paragrafu
+\usepackage{graphicx} % obrazy
+\usepackage{float} % dla image [H]
+\usepackage{amsmath,amsthm,amssymb,mathtools} % matematyka dowód
+\usepackage{changepage} % matematyka dowód
+\usepackage{siunitx} % wyrównanie do kropki
+\usepackage{makecell} % wyrównania nagłówków
+\usepackage{hyperref} % bez obwódek wokół linków
+\hypersetup{
+	colorlinks,
+	citecolor=black,
+	filecolor=black,
+	linkcolor=black,
+	urlcolor=magenta
+}
+
+% bez odstępu w itemize
+\let\tempone\itemize
+\let\temptwo\enditemize
+\renewenvironment{itemize}{\tempone\setlength{\itemsep}{0cm}}{\temptwo}
+
+\definecolor{lbcolor}{rgb}{0.9,0.9,0.9}  
+\graphicspath{ {img/} }
+% obrazek {nazwa.png}{opis}
+\newcommand{\imgcustomsize}[3]{
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=#3\textwidth]{#1}
+		\caption{#2}
+	\end{figure}
+}
+\newcommand{\img}[2]{\imgcustomsize{#1}{#2}{0.8}}
+
+% bez opisu
+\newcommand{\imgnocap}[1]{
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.6\textwidth]{#1}
+	\end{figure}
+}
+
+% dwa obrazki
+% \imgsidebyside{1}{opis 1}{2}{opis 2}
+\newcommand{\imgsidebyside}[4]{
+	\begin{figure}[H]
+		\centering
+		\begin{minipage}{.45\textwidth}
+			\centering
+			\includegraphics[width=1\linewidth]{#1}
+			\caption{#2}
+		\end{minipage}%
+		\hfill
+		\begin{minipage}{.45\textwidth}
+			\centering
+			\includegraphics[width=1\linewidth]{#3}
+			\caption{#4}
+		\end{minipage}
+	\end{figure}
+}
+
+% tabela z wynikami {nazwa.txt}{opis}
+\newcommand{\tab}[2]{
+	\begin{table}[H]
+		\centering
+		\caption{#2}
+		\vspace{0.3cm}
+		\input{#1}
+	\end{table}
+}
+
+% nagłowek tabeli bold
+\renewcommand\theadfont{\bfseries}
+
+\begin{document}
+	\lstset{backgroundcolor=\color{lbcolor}, language=Python, inputencoding=utf8}
+	
+	\title{\textit{Pico Pagers} \\ Urządzenia do powiadamiania klienta w restauracji \\
+		\vspace{0.2cm}
+		\large Systemy Wbudowane}
+	\author{Jakub Kosmydel \\
+		Norbert Morawski}
+	
+	\maketitle
+	\tableofcontents
+	\pagebreak
+	
+	% Dokumentacja projektu powinna być opracowana starannie i przejrzyście
+	% w formie tekstu z ilustracjami (wykresy, schematy, omówione ważne
+	% fragmenty kodu)
+	
+	\section{Wprowadzenie}
+		Dummy
+		
+	\section{Protokół komunikacyjny}
+		Zastosowaliśmy moduły komunikacyjne 433 MHz. Skłoniły nas do tego niska cena i prostota obsługi oraz brak wymaganej komunikacji zwrotnej przez nasze urządzenia.
+		
+		\imgsidebyside{dev/tx}{Nadajnik}{dev/rx}{Odbiornik}
+		\subsection{Warstwa sprzętowa}
+			Obsługa nadajnika/odbiornika opiera się na podłączeniu zasilania i nadawania/odbierania poprzez jeden dostępny przewód danych. Niestety te moduły zasilane są napięciem 5V i taki standard napięć stosują na wyjściu. Pi Pico toleruje tylko 3.3V. Konieczna więc była konwersja poziomów logicznych.
+			
+			\imgsidebyside{sch/tx}{Układ nadajnika}{sch/rx}{Układ odbiornika}
+			
+			Podwójne odwracanie sygnału przez tranzystory niweluje się. Na wejściu odbiornika dostajemy nieodwrócony sygnał z nadajnika.
+			
+		\subsection{Warstwa programowa}
+			Pierwszą naszą próbą było wykorzystanie wbudowanej komunikacji UART. Jednak okazało się że moduły te niezbyt dobrze przenoszą niezmieniający się sygnał (co widać poniżej).
+			
+			\img{fail1}{Wiadomość po stronie nadajnika/odbiornika}
+			Po ok. 70 ms układ odbiornika zaczyna generować zakłócenia, które mogą być niepoprawnie interpretowane jako sygnały komunikacji.
+			
+			\img{fail2}{Wyodrębnione zjawisko niestabilności}
+			Po dokładnej analizie przebiegów odbiornika wynikło, że stan niski może być utrzymany przez ok. 160 ms, a stan wysoki przez około 72ms. Oznacza to że sygnał musi utrzymywać minimalną częstotliwość 14Hz.
+			
+			\img{fail3_good}{Fala przenoszona bez zniekształceń}
+			Przy ciągłych zmianach 10Hz okazuje się wystarczające.
+			
+			Zaistniała potrzeba implementacji protokołu który utrzymywałby stałą częstotliwość fali nośnej. Przydatny w generacji takiego przebiegu jest PWM. Sterując wypełnieniem impulsu możemy przekazywać informacje binarne.
+			\imgsidebyside{pgm/proto}{Protokół oparty o PWM}{pgm/proto_conf}{Konfiguracja protokołu}{0.5}
+			W obecnej wersji (konfigurowalne) zastosowaliśmy podziałkę $\frac{1}{6}$ wypełnienia PWM.
+			\begin{itemize}
+				\item Cisza to  $\frac{3}{6}$ wypełnienia,
+				\item 0 to  $\frac{1}{6}$,
+				\item 1 to  $\frac{5}{6}$.
+			\end{itemize}
+			
+			Odbiornik akceptuje 0 jako maksymalnie $\frac{2}{6}$ wypełnienia, a 1 jako minimalnie $\frac{4}{6}$ wypełnienia.
+			
+			Producent określa maksymalną prędkość transmisji na 9600b/s (sugerowałoby to 9600Hz, jeżeli sygnalizowanie jest dwupoziomowe). Jednak generowane krótkie sygnały niekiedy są gubione przez nadajnik.
+			
+			\imgsidebyside{bauds/9600}{Gubienie impulsów 9600Hz}{bauds/7200_2}{Gubienie impulsów 7200Hz}
+			\imgsidebyside{bauds/4800_2}{Gubienie impulsów 4800Hz}{bauds/2400_2}{2400Hz}
+			
+			Dopiero przy częstotliwości 2400Hz, wszystkie krótkie impulsy dotarły do odbiornika.
+			
+			\paragraph{Strojenie}
+			Na płytce odbiornika dostępna jest cewka z możliwością dostrajania. Podjęliśmy próby jej nastawienia. Udało się osiągnąć szybkość transmisji 4800 b/s. Dla wyższych częstotliwości dostrajanie nie przyniosło efektów.
+			\imgsidebyside{bauds/tuning/ph_before}{Cewka przed dostrajaniem}{bauds/tuning/4800_before}{Przebieg 4800Hz przed dostrajaniem}
+			\imgsidebyside{bauds/tuning/ph_after}{Cewka po dostrojeniu}{bauds/tuning/4800_after}{Przebieg 4800Hz po dostrojeniu}
+			
+			Zostaliśmy jednak przy transmisji 2400 b/s. Jest bardziej niezawodna, a szybkość nie ma dla nas wielkiego znaczenia. Nasza ramka danych ma rozmiar 16 bajtów. Przy 2400 b/s czas transmisji 1 ramki wynosi 53ms. Jest to bardzo mało w porównaniu do tego jak często będą wysyłane takie ramki.
+			
+			\subsubsection{Implementacja}
+				Wysyłanie zostało zrealizowane z wykorzystaniem sprzętowego PWM i przerwania od jego przepełnienia. Częstotliwość PWM równa jest częstotliwości sygnalizowania w transmisji. Po wywołaniu przerwania przepełnienia, poziom wypełnienia ustawiany jest w zależności od następnego bitu danych. Jeżeli takiego nie ma, nadawana jest cisza.
+				\imgcustomsize{pgm/pwm_tx}{Nadawanie PWM}{0.6}
+				
+				Odbieranie natomiast wykorzystuje funkcję PWM mikrokontrolera RP2040, która umożliwia uruchomienie licznika w zależności od stanu pinu (obsługiwane są tylko piny nieparzyste). Używane jest także przerwanie na tym samym pinie, które wykrywa zbocze opadające (początek bitu). Zeruje ono licznik PWM, i czeka na kolejne zbocze opadające. Przy kolejnym zboczu wartość licznika jest interpretowana.
+				\imgcustomsize{pgm/pwm_rx}{Odbieranie PWM}{0.6}
+	 			Koniec ramki jest sygnalizowany przerwą w transmisji (podobnie do protokołu MODBUS). 10 znaków przerwy oznacza koniec ramki, przy czym nadajnik generuje 20 znaków przerwy.
+	 
+	 \section{System plików}
+	 	Do implementacji przechowywania plików (głownie statycznych plików strony WWW) został użyty system plików LittleFS. Przy użyciu funkcji dostępu do pamięci Flash, zapisuje on dane w dostępnej pamięci na płytce Pi Pico.
+	 	\img{pgm/littlefs}{Funkcje dostępowe do pamięci Flash, wymagane w konfiguracji LittleFS}
+	 	
+	 \section{WiFi}
+	 
+	 \section{Serwer HTTP}
+	 	Powstała własna implementacja serwera HTTP. Obsługuje on metody GET oraz POST. Interpretuje parametry URL jak i format \lstinline|application/x-www-form-urlencoded| używany w formularzach. Używa LittleFS do wysyłania statycznych plików. Nacisk został położony na wygodny interfejs do obsługi serwera.
+	 	\img{pgm/http_init}{Wygodny interfejs serwera HTTP}
+	 
+\end{document}
