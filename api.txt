@@ -11,3 +11,17 @@ WiFi scan
 		returns:
 			object: keys are SSIDs, values are object with keys:
 				ssid, rssi, channel, auth
+
+
+WiFi connect
+
+	GET /wifi/connect -- connects to WiFi (probably should be POST)
+		params:
+			ssid, password, auth (same value as scan returns)
+	
+	GET /wifi/connect/status
+		returns:
+			success[bool]
+			err_code[int]
+			ip[str] -- ip of STA interface
+			

@@ -117,7 +117,81 @@ void do_wifi_scan() {
 }
 
 
-/* -------------------------------------------  ------------------------------------------- */
+/* ------------------------------------------- WiFi connect ------------------------------------------- */
+
+uint32_t fix_auth(uint8_t sec) {
+    if (sec & 0x04) {
+        return CYW43_AUTH_WPA2_AES_PSK;
+    }
+
+    if (sec & 0x02) {
+        return CYW43_AUTH_WPA_TKIP_PSK;
+    }
+
+    // if (sec & 0x01) {
+    //     // wep
+    //     return -1;
+    // }
+
+    return -1;
+}
+
+volatile bool wifi_connect = false;
+volatile char connect_ssid[32];
+volatile char connect_pw[64];
+volatile uint32_t connect_auth;
+volatile int connect_err_code;
+
+void do_wifi_connect() {
+    cyw43_arch_enable_sta_mode();
+
+    printf("connecting to wifi ssid='%s' pwd='%s' auth=0x%08lx\n", connect_ssid, connect_pw, connect_auth);
+
+    int err = cyw43_arch_wifi_connect_blocking(
+            (char*)connect_ssid,
+            (char*)connect_pw,
+            connect_auth);
+
+    connect_err_code = err;
+
+    if (err) {
+        printf("Failed to connect err=%d\n", err);
+    }
+    else {
+        puts("connected");
+    }
+}
+
+void http_wifi_connect(HttpServerClient* client, void* arg) {
+    if (!client->has_req_param("ssid") || !client->has_req_param("password") || !client->has_req_param("auth")) {
+        client->response_bad("no ssid or password or auth given");
+        return;
+    }
+
+    strncpy((char*)connect_ssid, client->get_req_param("ssid").c_str(),     32);
+    strncpy((char*)connect_pw,   client->get_req_param("password").c_str(), 64);
+    connect_auth = fix_auth(client->get_req_param_int("auth"));
+    wifi_connect = true;
+
+    client->response_ok("ok");
+}
+
+void http_wifi_connect_status(HttpServerClient* client, void* arg) {
+    json.clear();
+
+    json["success"] = (connect_err_code == 0);
+    json["err_code"] = connect_err_code;
+
+    cyw43_arch_lwip_begin();
+    const ip4_addr_t* addr;
+    addr = netif_ip4_addr(&cyw43_state.netif[CYW43_ITF_STA]);
+    cyw43_arch_lwip_end();
+
+    json["ip"] = ip4addr_ntoa(addr);
+
+    client->response_json(json, jbuf, 8*1024);
+}
+
 /* -------------------------------------------  ------------------------------------------- */
 /* -------------------------------------------  ------------------------------------------- */
 /* -------------------------------------------  ------------------------------------------- */
@@ -184,10 +258,13 @@ int main() {
     server.on(Method::GET, "/form", form_test_page);
     server.on(Method::POST, "/form", form_test_page);
 
-    /* WiFI */
+    /* WiFI scan */
     server.on(Method::GET, "/wifi/scan/start", http_wifi_scan_start);
     server.on(Method::GET, "/wifi/scan/status", http_wifi_scan_status);
     server.on(Method::GET, "/wifi/scan/results", http_wifi_scan_results);
+    /* WiFI connect */
+    server.on(Method::GET, "/wifi/connect", http_wifi_connect);
+    server.on(Method::GET, "/wifi/connect/status", http_wifi_connect_status);
 
     /**
      *
@@ -237,6 +314,11 @@ int main() {
         if (wifi_scan) {
             wifi_scan = false;
             do_wifi_scan();
+        }
+
+        if (wifi_connect) {
+            wifi_connect = false;
+            do_wifi_connect();
         }
     }
 }
