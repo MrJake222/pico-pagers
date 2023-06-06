@@ -149,9 +149,7 @@ void HttpServerClient::handle_body() {
         return; // no content length
 
     char* endptr;
-    int len = strtol(get_req_header("Content-Length").c_str(), &endptr, 10);
-    if (*endptr)
-        return; // not null terminated
+    int len = get_req_header_int("Content-Length");
 
     if (!has_req_header("Content-Type"))
         return; // no content type
@@ -213,6 +211,18 @@ void HttpServerClient::not_found() {
 void HttpServerClient::response_ok(const char* str) {
     set_content_length(strlen(str));
     response_begin(200, "OK");
+    send_string(str);
+}
+
+void HttpServerClient::response_err(const char* str) {
+    set_content_length(strlen(str));
+    response_begin(500, "Internal Server Error");
+    send_string(str);
+}
+
+void HttpServerClient::response_bad(const char* str) {
+    set_content_length(strlen(str));
+    response_begin(400, "Bad Request");
     send_string(str);
 }
 

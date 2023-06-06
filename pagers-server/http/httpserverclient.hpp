@@ -65,10 +65,12 @@ public:
     MapStrings get_req_headers() { return request_headers; }
     bool has_req_header(const std::string& hdr) { return request_headers.count(hdr) > 0; }
     std::string get_req_header(const std::string& hdr) { return request_headers.at(hdr); }
+    int get_req_header_int(const std::string& hdr) { return stoi(get_req_header(hdr)); }
 
     MapStrings get_req_params() { return request_params; }
     bool has_req_param(const std::string& p) { return request_params.count(p) > 0; }
     std::string get_req_param(const std::string& p) { return request_params.at(p); }
+    int get_req_param_int(const std::string& p) { return stoi(get_req_param(p)); }
 
     void set_header(const char* name, const char* val) { response_headers[name] = val; }
     void set_content_length(int len) { response_headers["Content-Length"] = std::to_string(len); }
@@ -76,6 +78,8 @@ public:
     void set_json() { set_content_type("application/json"); }
 
     void response_ok(const char* str);
+    void response_err(const char* str);
+    void response_bad(const char* str);
     void response_json(DynamicJsonDocument& json_doc, char* buf, int bufsize);
 };
 

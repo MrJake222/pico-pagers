@@ -11,17 +11,13 @@
 
 #include "physical.hpp"
 #include <protocol.hpp>
-#include <hardware/pwm.h>
+#include <vector>
 
 lfs_t lfs;
 lfs_file_t file;
 
 #include "httpserver.hpp"
 #include "ArduinoJson.h"
-
-void root(HttpServerClient* client, void* arg) {
-    client->response_ok("<h1>OK</h1>");
-}
 
 char jbuf[8*1024];
 DynamicJsonDocument json(8*1024);
@@ -48,6 +44,84 @@ void form_test_page(HttpServerClient* client, void* arg) {
 
     client->response_ok("ok");
 }
+
+
+/* ------------------------------------------- WIFI ------------------------------------------- */
+
+volatile bool wifi_scan = false;
+typedef std::map<std::string, cyw43_ev_scan_result_t> ScanResultsMap;
+ScanResultsMap* scan_results = nullptr;
+
+void http_wifi_scan_start(HttpServerClient* client, void* arg) {
+    scan_results = new ScanResultsMap;
+    wifi_scan = true;
+    client->response_ok("ok");
+}
+
+void http_wifi_scan_status(HttpServerClient* client, void* arg) {
+    json.clear();
+    json["active"] = cyw43_wifi_scan_active(&cyw43_state);
+    client->response_json(json, jbuf, 8*1024);
+}
+
+void http_wifi_scan_results(HttpServerClient* client, void* arg) {
+    if (!scan_results) {
+        client->response_bad("start a scan first");
+        return;
+    }
+
+    if (cyw43_wifi_scan_active(&cyw43_state)) {
+        client->response_bad("scan still in progress");
+        return;
+    }
+
+    json.clear();
+
+    for (auto r : *scan_results) {
+        json[r.first]["ssid"]    = r.second.ssid;
+        json[r.first]["rssi"]    = r.second.rssi;
+        json[r.first]["channel"] = r.second.channel;
+        json[r.first]["auth"]    = r.second.auth_mode;
+    }
+
+    delete scan_results;
+    scan_results = nullptr;
+
+    client->response_json(json, jbuf, 8*1024);
+}
+
+int scan_result(void* env, const cyw43_ev_scan_result_t* result) {
+    if (result && scan_results) {
+        (*scan_results)[(char*)result->ssid] = *result;
+
+        printf("ssid: %-32s rssi: %4d chan: %3d mac: %02x:%02x:%02x:%02x:%02x:%02x sec: %u\n",
+               result->ssid, result->rssi, result->channel,
+               result->bssid[0], result->bssid[1], result->bssid[2], result->bssid[3], result->bssid[4], result->bssid[5],
+               result->auth_mode);
+    }
+    return 0;
+}
+
+void do_wifi_scan() {
+    cyw43_arch_enable_sta_mode();
+
+    cyw43_wifi_scan_options_t scan_options = {0};
+
+    int err = cyw43_wifi_scan(&cyw43_state, &scan_options, nullptr, scan_result);
+    if (err) {
+        printf("Failed to start scan err=%d\n", err);
+    }
+    else {
+        puts("WiFi scan started");
+    }
+}
+
+
+/* -------------------------------------------  ------------------------------------------- */
+/* -------------------------------------------  ------------------------------------------- */
+/* -------------------------------------------  ------------------------------------------- */
+/* -------------------------------------------  ------------------------------------------- */
+/* -------------------------------------------  ------------------------------------------- */
 
 int main() {
 
@@ -106,10 +180,14 @@ int main() {
     server.set_cb_arg(nullptr);
     server.start(80);
     server.static_content(&lfs, "/static");
-    server.on(Method::GET, "/root", root);
     server.on(Method::GET, "/json", json_test_page);
     server.on(Method::GET, "/form", form_test_page);
     server.on(Method::POST, "/form", form_test_page);
+
+    /* WiFI */
+    server.on(Method::GET, "/wifi/scan/start", http_wifi_scan_start);
+    server.on(Method::GET, "/wifi/scan/status", http_wifi_scan_status);
+    server.on(Method::GET, "/wifi/scan/results", http_wifi_scan_results);
 
     /**
      *
@@ -155,5 +233,10 @@ int main() {
 
         send_bytes((uint8_t*)&frame, PROTO_FRAME_SIZE);
         send_wait_for_end();
+
+        if (wifi_scan) {
+            wifi_scan = false;
+            do_wifi_scan();
+        }
     }
 }

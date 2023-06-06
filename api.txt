@@ -1,0 +1,13 @@
+
+WiFi scan
+
+	GET /wifi/scan/start  -- starts a scan
+		creates scan structure
+	GET /wifi/scan/status -- status of a scan
+		returns:
+			active[bool]
+	GET /wifi/scan/results -- status of a scan
+		deletes scan structure (can't be called twice without start)
+		returns:
+			object: keys are SSIDs, values are object with keys:
+				ssid, rssi, channel, auth
