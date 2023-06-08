@@ -5,27 +5,25 @@
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Pager server</title>
+    <title>Pagers Server</title>
     <link rel="stylesheet" href="style.css">
-    <script src="script.js" defer></script>
+    <script type="text/javascript" src="script.js"></script>
 </head>
-<body>
-    <div id="pager-list"></div>
+    <body>
+        <h1>Pagers Server</h1>
+        <h2>Setup the WiFi connection</h2>
 
-    Form test GET
-    <form method="GET" action="/form">
-        <input name="tekst" type="text" value="test text" />
-        <input name="numer" type="number" value="123" />
-        <input name="check" type="checkbox" />
-        <input type="submit" value="OK" />
-    </form>
+        <button onclick="startScan()">Initiate Scan</button>
+        <p id="scanningStatus"></p>
+        <br><br>
 
-    Form test POST
-    <form method="POST" action="/form">
-        <input name="tekst" type="text" value="test text" />
-        <input name="numer" type="number" value="123" />
-        <input name="check" type="checkbox" />
-        <input type="submit" value="OK" />
-    </form>
-</body>
+        <h2>Scanned WiFi Networks</h2>
+        <p>Click on the name, to select the network</p>
+        <ul id="wifiList"></ul>
+
+        <h2>Connect to WiFi</h2>
+        <input type="text" id="ssidInput" placeholder="SSID">
+        <input type="password" id="passwordInput" placeholder="Password">
+        <button onclick="connectToWiFi()">Connect</button>
+    </body>
 </html>

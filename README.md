@@ -12,6 +12,19 @@ cd ..
 ## Cloning
 Run: `git clone --recurse-submodules <this repo>`
 
+## Setup
+
+Install `mklfs`:
+```bash
+git clone --recursive git@github.com:xingrz/mklfs.git
+cd mklfs
+cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+# example adding to PATH (macOS)
+export PATH=$PATH:/Path/To/mklfs/build
+```
+Remember, to add to `build` folder to the PATH!
+
 ## Server
 ### Running
 1. Compile the server

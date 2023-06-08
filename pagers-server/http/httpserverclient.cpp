@@ -188,7 +188,7 @@ void HttpServerClient::send_string(const char* str) {
 void HttpServerClient::response_begin(int code, const char* code_str) {
     char buf[128];
 
-    snprintf(buf, 128, "HTTP/1.1 %d %s\r\n", code, code_str);
+    snprintf(buf, 128, "HTTP/1.1 %d %s\r\nAccess-Control-Allow-Origin: *\r\n", code, code_str);
     send_string(buf);
 
     for (const auto& entry : response_headers) {
