@@ -20,6 +20,11 @@ struct proto_data {
     unsigned short checksum;
 };
 
+enum MessageType {
+    DEFAULT = 0xDBDB,
+    PAIR = 0xBDBD,
+};
+
 #define PROTO_DATA_SIZE sizeof(struct proto_data)
 #define PROTO_CHECKSUM_SIZE sizeof(short)
 

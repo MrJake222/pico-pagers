@@ -5,12 +5,17 @@
 #include <physical.hpp>
 #include <cstring>
 
+const int BUTTON = 10;
+
 const int LED_RED = 15;
 const int LED_YELLOW = 14;
 const int LED_GREEN = 13;
 
 volatile bool frame_present;
 volatile struct proto_frame frame;
+
+bool previous_button_state = false;
+bool is_pairing_mode = false;
 
 void frame_received(const volatile uint8_t* buf, uint bytes) {
     if (!frame_present) {
@@ -27,6 +32,9 @@ void frame_received(const volatile uint8_t* buf, uint bytes) {
     }
 }
 
+
+// device id
+unsigned short device_id = 0x1215;
 const uint8_t public_key[KEY_LENGTH_BYTES] = { 0 };
 struct proto_data data;
 
@@ -35,6 +43,10 @@ int main() {
     // UART on USB
     // printf writes to USB only
     stdio_usb_init();
+
+    // pair button
+    gpio_init(BUTTON);
+    gpio_set_dir(BUTTON, GPIO_IN);
 
     // status leds
     gpio_init(LED_RED);    gpio_set_dir(LED_RED, GPIO_OUT);
@@ -58,6 +70,16 @@ int main() {
     rx_set_callback(frame_received);
 
     while (1) {
+        if (gpio_get(BUTTON)) {
+            if (!previous_button_state) {
+                printf("button pressed\n");
+                previous_button_state = true;
+                is_pairing_mode = !is_pairing_mode;
+                printf("pairing mode %d\n", is_pairing_mode);
+            }
+        } else {
+            previous_button_state = false;
+        }
         if (frame_present) {
             // TODO check return value
             proto_decrypt(public_key, (struct proto_frame*)&frame, &data);
@@ -74,6 +96,16 @@ int main() {
             }
 
             // TODO verify sequence number
+
+            if (data.message_type == MessageType::PAIR) {
+                printf("Received pairing message!\n\n\n");
+                is_pairing_mode = false;
+                device_id = data.receiver_id;
+            }
+
+            if (data.receiver_id == device_id) {
+                printf("Received message for me!\n\n\n");
+            }
 
             int time_seconds = time_us_64() / 1000000;
             printf("[%02d:%02d] rid=%04x, seq=%16llx, type=%04x, param=%04x, checksum=%04x [%s]\n",

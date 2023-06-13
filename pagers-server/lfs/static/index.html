@@ -7,7 +7,9 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Pagers Server</title>
     <link rel="stylesheet" href="style.css">
-    <script type="text/javascript" src="script.js"></script>
+    <script type="text/javascript" src="wifi.js"></script>
+    <script type="text/javascript" src="config.js"></script>
+    <script type="text/javascript" src="pair.js"></script>
 </head>
     <body>
         <h1>Pagers Server</h1>
@@ -25,5 +27,10 @@
         <input type="text" id="ssidInput" placeholder="SSID">
         <input type="password" id="passwordInput" placeholder="Password">
         <button onclick="connectToWiFi()">Connect</button>
+
+        <h2>Pair pager</h2>
+        <p>To pair a new pager you need to press pairing button on the pager, and then click Pair button below.</p>
+        <input type="number" id="pagerIdInput" placeholder="id">
+        <button onclick="pairPager()">Pair</button>
     </body>
 </html>

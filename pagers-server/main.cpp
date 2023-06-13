@@ -22,6 +22,9 @@ lfs_file_t file;
 char jbuf[8*1024];
 DynamicJsonDocument json(8*1024);
 
+unsigned long long sequence_number = 0;
+const uint8_t private_key[KEY_LENGTH_BYTES] = { 0 };
+
 void json_test_page(HttpServerClient* client, void* arg) {
     json.clear();
     json["val"] = 123;
@@ -192,6 +195,55 @@ void http_wifi_connect_status(HttpServerClient* client, void* arg) {
     client->response_json(json, jbuf, 8*1024);
 }
 
+/* ------------------------------------------- Pagers pairing ------------------------------------------- */
+
+unsigned short pairing_device_id = -1;
+int pairing_messages_left = 0;
+
+void send_message(proto_data data) {
+    puts("sending message");
+    struct proto_frame frame;
+    sequence_number++;
+    data.sequence_number = sequence_number;
+
+    proto_checksum_calc(&data);
+    proto_encrypt(private_key, &data, &frame);
+
+    send_bytes((uint8_t*)&frame, PROTO_FRAME_SIZE);
+    send_wait_for_end();
+}
+
+// prepare and send a pairing message
+void send_pairing_message() {
+    if (pairing_messages_left <= 0) {
+        return;
+    }
+
+    pairing_messages_left--;
+
+    struct proto_data data = {
+            .receiver_id = pairing_device_id,
+            .message_type = MessageType::PAIR,
+            .message_param = 0x0,
+    };
+    send_message(data);
+
+    printf("sending pairing message, pager id=%d\n", pairing_device_id);
+}
+
+void http_pagers_pair(HttpServerClient* client, void* arg) {
+    if (!client->has_req_param("id")) {
+        client->response_bad("no pager id given");
+        return;
+    }
+
+    uint32_t id = client->get_req_param_int("id");
+    pairing_device_id = id;
+    pairing_messages_left = 20;
+
+    client->response_ok("sending pair request to pager");
+}
+
 /* -------------------------------------------  ------------------------------------------- */
 /* -------------------------------------------  ------------------------------------------- */
 /* -------------------------------------------  ------------------------------------------- */
@@ -266,6 +318,9 @@ int main() {
     server.on(Method::GET, "/wifi/connect", http_wifi_connect);
     server.on(Method::GET, "/wifi/connect/status", http_wifi_connect_status);
 
+    /* Pair new pager */
+    server.on(Method::GET, "/pagers/pair", http_pagers_pair);
+
     /**
      *
      * REST OF THE CODE
@@ -276,7 +331,7 @@ int main() {
     struct proto_data data = {
             .sequence_number = 0, //0xCAFEDEADBEEFCAFE,
             .receiver_id = 0x1215,
-            .message_type = 0xDBDB,
+            .message_type = MessageType::DEFAULT,
             .message_param = 0xACDC
     };
 
@@ -300,7 +355,6 @@ int main() {
     printf("sizeof proto_frame %u\n", sizeof(struct proto_frame));
 
     while (1) {
-        // puts("running");
         sleep_ms(250);
 
         data.sequence_number++;
@@ -319,6 +373,13 @@ int main() {
         if (wifi_connect) {
             wifi_connect = false;
             do_wifi_connect();
+        }
+
+        if (pairing_messages_left > 0) {
+            puts("sending pairing message");
+            pairing_messages_left--;
+            send_pairing_message();
+            sleep_ms(250);
         }
     }
 }

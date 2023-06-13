@@ -1,6 +1,3 @@
-const devMode = false;
-const URL_PREFIX = devMode ? 'http://192.168.4.1' : '';
-
 function setScanningStatus(msg) {
     document.getElementById("scanningStatus").innerHTML = msg;
 }

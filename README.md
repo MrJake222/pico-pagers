@@ -36,7 +36,15 @@ cmake ..
 make -j4
 ```
 
-2. Upload code to the device:
+2. Upload code to the device. You can choose one of two ways:
+
+#### Using `picotool`:
+Run this command in the build folder. You should replace `X` with the address of the Pi Pico W board.
+```shell
+picotool load -u -v pagers-server.uf2 --address X -f
+```
+
+#### Using file system:
 - Hold the BOOTSEL button on the Pico
 - Connect the Pico to your computer
 - Release the BOOTSEL button
@@ -50,6 +58,21 @@ make -j4
 - Run `ls /dev/cu.*` to find the serial port
 - Run `screen SERIAL_PORT 115200` (replace the serial port with the one you found)
 - 
+
+## Client
+### Running
+1. Compile the client
+```bash
+cd pagers-client
+mkdir build
+cd build
+cmake ..
+make -j4
+```
+
+2. Upload code to the device as described in the server section:
+- remember to use `pagers-client.uf2` instead of `pagers-server.uf2`,
+- remember to change the address of the device.
 
 ## Utilities
 
