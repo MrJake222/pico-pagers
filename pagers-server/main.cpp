@@ -381,5 +381,7 @@ int main() {
             send_pairing_message();
             sleep_ms(250);
         }
+
+        server.loop();
     }
 }

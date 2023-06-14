@@ -22,6 +22,8 @@ class HttpServerClient {
     tcp_pcb* const pcb;
     CircularBuffer buf;
 
+    bool request_ready = false;
+
     bool first_line = true;
     Method method;
     char req_path[1024];
@@ -29,7 +31,7 @@ class HttpServerClient {
     MapStrings request_params;
 
     MapStrings response_headers;
-    int sent = 0;
+    volatile int sent = 0;
     int should_send = 0;
 
 public:
@@ -45,6 +47,9 @@ public:
     Method get_method() { return method; }
     const char* get_path() { return req_path; }
 
+    void mark_request_ready() { request_ready = true; }
+    bool is_request_ready() { return request_ready; }
+
     // returns char read
     int parse_url_arguments(const char* ptr);
     int parse_header(const char* ptr);
@@ -54,7 +59,7 @@ public:
 
     err_t flush();
     err_t close();
-    void send_ack(int b) { sent += b; }
+    void send_ack(int b) { sent += b; printf("client sent %d should sent %d\n", sent, should_send); }
     bool send_finished() { return sent == should_send; }
 
     void send_string(const char* str);
