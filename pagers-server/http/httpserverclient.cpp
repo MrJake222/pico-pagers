@@ -210,43 +210,6 @@ void HttpServerClient::send_string(const char* str) {
         }
     }
 
-    // int curr_sent = 0;
-    // while (curr_sent < len) {
-    //     int buffer_left = tcp_sndbuf(pcb);
-    //     int to_be_sent = MIN(len - curr_sent, buffer_left);
-    //
-    //     while (1) {
-    //         int err = tcp_write(pcb,
-    //                             str,
-    //                             to_be_sent,
-    //                             0);
-    //
-    //         if (err == ERR_OK) {
-    //             // everything ok
-    //             break;
-    //         }
-    //         if (err == ERR_MEM) {
-    //             // out of memory
-    //             // wait for memory to become available (no break)
-    //             puts("tcp_write no mem");
-    //             // int already_sent = sent;
-    //             // cyw43_arch_lwip_end();
-    //             // while (already_sent == sent);
-    //             // cyw43_arch_lwip_begin();
-    //         } else {
-    //             // other (unrecoverable) error
-    //             printf("tcp_write failed with error %d\n", err);
-    //             cyw43_arch_lwip_end();
-    //             return;
-    //         }
-    //     }
-    //
-    //     curr_sent += to_be_sent;
-    //     str += to_be_sent; // move pointer
-    // }
-    //
-    // should_send += curr_sent;
-
     cyw43_arch_lwip_end();
 }
 
