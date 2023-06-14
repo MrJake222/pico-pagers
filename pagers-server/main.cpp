@@ -12,6 +12,7 @@
 #include "physical.hpp"
 #include <protocol.hpp>
 #include <vector>
+#include <tuple>
 
 lfs_t lfs;
 lfs_file_t file;
@@ -22,8 +23,16 @@ lfs_file_t file;
 char jbuf[8*1024];
 DynamicJsonDocument json(8*1024);
 
+const unsigned short DEFAULT_FLASHING_TIME = 30;
+
 unsigned long long sequence_number = 0;
 const uint8_t private_key[KEY_LENGTH_BYTES] = { 0 };
+
+struct Pager {
+    unsigned short device_id;
+    unsigned short flashing_time_left;
+};
+std::vector<Pager> pagers;
 
 void json_test_page(HttpServerClient* client, void* arg) {
     json.clear();
@@ -46,6 +55,37 @@ void form_test_page(HttpServerClient* client, void* arg) {
     puts("end params");
 
     client->response_ok("ok");
+}
+
+/* ------------------------------------------- PAGER UTILS ------------------------------------------- */
+
+bool pager_exits(unsigned short device_id) {
+    for (auto& pager : pagers) {
+        if (pager.device_id == device_id) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool remove_pager(unsigned short device_id_to_remove) {
+    for (auto it = pagers.begin(); it != pagers.end(); ++it) {
+        if (it->device_id == device_id_to_remove) {
+            pagers.erase(it);
+            return true;
+        }
+    }
+    return false;
+}
+
+bool set_flashing_time_left(unsigned short device_id, unsigned short flashing_time_left) {
+    for (auto& pager : pagers) {
+        if (pager.device_id == device_id) {
+            pager.flashing_time_left = flashing_time_left;
+            return true;
+        }
+    }
+    return false;
 }
 
 
@@ -201,7 +241,6 @@ unsigned short pairing_device_id = -1;
 int pairing_messages_left = 0;
 
 void send_message(proto_data data) {
-    puts("sending message");
     struct proto_frame frame;
     sequence_number++;
     data.sequence_number = sequence_number;
@@ -213,7 +252,6 @@ void send_message(proto_data data) {
     send_wait_for_end();
 }
 
-// prepare and send a pairing message
 void send_pairing_message() {
     if (pairing_messages_left <= 0) {
         return;
@@ -239,9 +277,77 @@ void http_pagers_pair(HttpServerClient* client, void* arg) {
 
     uint32_t id = client->get_req_param_int("id");
     pairing_device_id = id;
-    pairing_messages_left = 20;
 
-    client->response_ok("sending pair request to pager");
+    if (pager_exits(id)) {
+        client->response_ok("pager already exist... remove old pager");
+        return;
+    }
+
+    pairing_messages_left = 10;
+    Pager pager;
+    pager.device_id = pairing_device_id;
+    pager.flashing_time_left = 0;
+    pagers.push_back(pager);
+
+    client->response_ok("started pairing...");
+}
+
+/* ------------------------------------------- Pagers management ------------------------------------------- */
+
+void http_pagers_list(HttpServerClient* client, void* arg) {
+    json.clear();
+
+    json["total_pagers"] = pagers.size();
+
+    for (auto& r : pagers) {
+        printf("Pager list: %04x\n", r.device_id);
+        json["pagers"][std::to_string(r.device_id)] = r.flashing_time_left;
+    }
+
+    client->response_json(json, jbuf, 8*1024);
+}
+
+void http_pagers_remove(HttpServerClient* client, void* arg) {
+    if (!client->has_req_param("id")) {
+        client->response_bad("no pager id given");
+        return;
+    }
+
+    unsigned short device_id = client->get_req_param_int("id");
+
+    bool res = remove_pager(device_id);
+
+    client->response_ok(res ? "removed" : "pager not found");
+}
+
+void http_pagers_flash(HttpServerClient* client, void* arg) {
+    if (!client->has_req_param("id")) {
+        client->response_bad("no pager id given");
+        return;
+    }
+
+    unsigned short device_id = client->get_req_param_int("id");
+
+    set_flashing_time_left(device_id, DEFAULT_FLASHING_TIME);
+
+    client->response_ok("flashing the pager");
+}
+
+void send_flash_messages() {
+    for (auto it = pagers.begin(); it != pagers.end(); ++it) {
+        if (it->flashing_time_left >= 0) {
+            struct proto_data data = {
+                    .receiver_id = it->device_id,
+                    .message_type = MessageType::FLASH,
+                    .message_param = it->flashing_time_left,
+            };
+            send_message(data);
+            if (it->flashing_time_left > 0) {
+                it->flashing_time_left--;
+            }
+            sleep_ms(50);
+        }
+    }
 }
 
 /* -------------------------------------------  ------------------------------------------- */
@@ -320,6 +426,9 @@ int main() {
 
     /* Pair new pager */
     server.on(Method::GET, "/pagers/pair", http_pagers_pair);
+    server.on(Method::GET, "/pagers/list", http_pagers_list);
+    server.on(Method::GET, "/pagers/remove", http_pagers_remove);
+    server.on(Method::GET, "/pagers/flash", http_pagers_flash);
 
     /**
      *
@@ -357,14 +466,6 @@ int main() {
     while (1) {
         sleep_ms(250);
 
-        data.sequence_number++;
-
-        proto_checksum_calc(&data);
-        proto_encrypt(private_key, &data, &frame);
-
-        send_bytes((uint8_t*)&frame, PROTO_FRAME_SIZE);
-        send_wait_for_end();
-
         if (wifi_scan) {
             wifi_scan = false;
             do_wifi_scan();
@@ -379,8 +480,11 @@ int main() {
             puts("sending pairing message");
             pairing_messages_left--;
             send_pairing_message();
-            sleep_ms(250);
+            sleep_ms(50);
         }
+
+        send_flash_messages();
+
 
         server.loop();
     }

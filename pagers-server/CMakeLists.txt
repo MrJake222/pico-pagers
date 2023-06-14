@@ -5,6 +5,8 @@ set(PICO_BOARD pico_w)
 # for openocd debug
 set(PICO_DEOPTIMIZED_DEBUG 1)
 
+message("Using PICO_SDK_PATH: $$ENV{PICO_SDK_PATH}")
+
 # pico sdk
 include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 

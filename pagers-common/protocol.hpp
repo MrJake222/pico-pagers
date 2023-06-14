@@ -23,6 +23,7 @@ struct proto_data {
 enum MessageType {
     DEFAULT = 0xDBDB,
     PAIR = 0xBDBD,
+    FLASH = 0xBBDD,
 };
 
 #define PROTO_DATA_SIZE sizeof(struct proto_data)
