@@ -1,4 +1,5 @@
 #include "httpserver.hpp"
+#include "mime.hpp"
 
 #include <cstdio>
 #include <pico/cyw43_arch.h>
@@ -120,7 +121,7 @@ bool HttpServer::start(int port) {
         return false;
     }
 
-    server_pcb = tcp_listen_with_backlog(pcb, 1);
+    server_pcb = tcp_listen_with_backlog(pcb, 10);
     if (!server_pcb) {
         printf("failed to listen\n");
         tcp_close(pcb);
@@ -139,17 +140,20 @@ bool HttpServer::try_static(HttpServerClient* client, const char* req_path) {
     if (!static_enabled)
         return false;
 
-    char buf[128];
+    const int BUFSZ = 1024;
+    char buf[BUFSZ];
+
     if (strcmp(req_path, "/") == 0)
-        snprintf(buf, 128, "%s/index.html", fs_path);
+        snprintf(buf, BUFSZ, "%s/index.html", fs_path);
     else
-        snprintf(buf, 128, "%s%s", fs_path, req_path);
+        snprintf(buf, BUFSZ, "%s%s", fs_path, req_path);
     lfs_file_t file;
     int res = lfs_file_open(lfs, &file, buf, LFS_O_RDONLY);
     if (res < 0) {
         return false;
     }
 
+    client->set_content_type(content_type_for(buf));
     client->set_content_length(file.ctz.size);
     client->response_begin(200, "OK");
 

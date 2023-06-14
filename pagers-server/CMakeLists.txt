@@ -24,6 +24,7 @@ add_executable(${PROJECT_NAME}
         dnsserver/dnsserver.c
         http/httpserver.cpp
         http/httpserverclient.cpp
+        http/mime.cpp
 )
 
 pico_add_extra_outputs(${PROJECT_NAME})
