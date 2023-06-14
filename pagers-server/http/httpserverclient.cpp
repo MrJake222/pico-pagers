@@ -1,4 +1,5 @@
 #include <cstring>
+#include <pico/cyw43_arch.h>
 #include "httpserverclient.hpp"
 
 static const char* strchrto(const char* from, const char* to, char chr) {
@@ -165,31 +166,98 @@ void HttpServerClient::handle_body() {
 }
 
 err_t HttpServerClient::flush() {
+    cyw43_arch_lwip_begin();
     return tcp_output(pcb);
+    cyw43_arch_lwip_end();
 }
 
 err_t HttpServerClient::close() {
+    cyw43_arch_lwip_begin();
+
     err_t err = tcp_close(pcb);
     if (err != ERR_OK) {
         printf("close failed %d, calling abort\n", err);
         tcp_abort(pcb);
+        cyw43_arch_lwip_end();
         return ERR_ABRT;
     }
 
+    cyw43_arch_lwip_end();
     return err;
 }
 
 void HttpServerClient::send_string(const char* str) {
     int len = strlen(str);
     should_send += len;
-    tcp_write(pcb, str, len, 0);
+
+    cyw43_arch_lwip_begin();
+    while (true) {
+        int err = tcp_write(pcb, str, len, 0);
+        printf("tcp write err=%d\n", err);
+        if (err == ERR_OK) {
+            break;
+        }
+        else if (err == ERR_MEM) {
+            puts("client tcp_write waiting for memory");
+            cyw43_arch_lwip_end();
+            int currently_sent = sent;
+            while (currently_sent != sent);
+            cyw43_arch_lwip_begin();
+        }
+        else {
+            printf("tcp_write failed with error %d\n", err);
+            break;
+        }
+    }
+
+    // int curr_sent = 0;
+    // while (curr_sent < len) {
+    //     int buffer_left = tcp_sndbuf(pcb);
+    //     int to_be_sent = MIN(len - curr_sent, buffer_left);
+    //
+    //     while (1) {
+    //         int err = tcp_write(pcb,
+    //                             str,
+    //                             to_be_sent,
+    //                             0);
+    //
+    //         if (err == ERR_OK) {
+    //             // everything ok
+    //             break;
+    //         }
+    //         if (err == ERR_MEM) {
+    //             // out of memory
+    //             // wait for memory to become available (no break)
+    //             puts("tcp_write no mem");
+    //             // int already_sent = sent;
+    //             // cyw43_arch_lwip_end();
+    //             // while (already_sent == sent);
+    //             // cyw43_arch_lwip_begin();
+    //         } else {
+    //             // other (unrecoverable) error
+    //             printf("tcp_write failed with error %d\n", err);
+    //             cyw43_arch_lwip_end();
+    //             return;
+    //         }
+    //     }
+    //
+    //     curr_sent += to_be_sent;
+    //     str += to_be_sent; // move pointer
+    // }
+    //
+    // should_send += curr_sent;
+
+    cyw43_arch_lwip_end();
 }
 
 void HttpServerClient::response_begin(int code, const char* code_str) {
     char buf[128];
 
-    snprintf(buf, 128, "HTTP/1.1 %d %s\r\nAccess-Control-Allow-Origin: *\r\n", code, code_str);
+    // Hast to be 1.0 because this server only supports one request per connection
+    snprintf(buf, 128, "HTTP/1.0 %d %s\r\n", code, code_str);
     send_string(buf);
+
+    response_headers["Access-Control-Allow-Origin"] = "*";
 
     for (const auto& entry : response_headers) {
         snprintf(buf, 128, "%s: %s\r\n", entry.first.c_str(), entry.second.c_str());

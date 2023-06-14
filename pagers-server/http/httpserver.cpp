@@ -1,4 +1,5 @@
 #include "httpserver.hpp"
+#include "mime.hpp"
 
 #include <cstdio>
 #include <pico/cyw43_arch.h>
@@ -59,7 +60,7 @@ err_t tcp_client_recv(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err)
                 if (len == 2) {
                     // only \r\n
                     // finished
-                    client->server->handle_request(client, client->get_method(), client->get_path());
+                    client->mark_request_ready();
                 }
             }
         }
@@ -99,6 +100,9 @@ static err_t tcp_server_accept(void *arg, struct tcp_pcb *client_pcb, err_t err)
     // tcp_poll(client_pcb, tcp_server_poll, POLL_TIME_S * 2);
     tcp_err(client_pcb, tcp_client_err);
 
+    // add to client list
+    server->new_client(client);
+
     return ERR_OK;
 }
 
@@ -120,7 +124,7 @@ bool HttpServer::start(int port) {
         return false;
     }
 
-    server_pcb = tcp_listen_with_backlog(pcb, 1);
+    server_pcb = tcp_listen_with_backlog(pcb, 10);
     if (!server_pcb) {
         printf("failed to listen\n");
         tcp_close(pcb);
@@ -139,28 +143,31 @@ bool HttpServer::try_static(HttpServerClient* client, const char* req_path) {
     if (!static_enabled)
         return false;
 
-    char buf[128];
+    const int BUFSZ = 128;
+    char buf[BUFSZ];
+
     if (strcmp(req_path, "/") == 0)
-        snprintf(buf, 128, "%s/index.html", fs_path);
+        snprintf(buf, BUFSZ, "%s/index.html", fs_path);
     else
-        snprintf(buf, 128, "%s%s", fs_path, req_path);
+        snprintf(buf, BUFSZ, "%s%s", fs_path, req_path);
     lfs_file_t file;
     int res = lfs_file_open(lfs, &file, buf, LFS_O_RDONLY);
     if (res < 0) {
         return false;
     }
 
+    client->set_content_type(content_type_for(buf));
     client->set_content_length(file.ctz.size);
     client->response_begin(200, "OK");
 
     int read;
     while (true) {
-        read = lfs_file_read(lfs, &file, buf, 127);
+        read = lfs_file_read(lfs, &file, buf, BUFSZ-1);
         if (read < 0)
             return false;
         buf[read] = 0;
         client->send_string(buf);
-        if (read < 127)
+        if (read < BUFSZ-1)
             break;
     }
 
@@ -195,4 +202,21 @@ void HttpServer::static_content(lfs_t* lfs_, const char* fs_path_) {
     static_enabled = true;
     lfs = lfs_;
     fs_path = fs_path_;
+}
+
+void HttpServer::loop() {
+    for (ClientVect::iterator it = client_vect.begin(); it!=client_vect.end();) {
+        auto client = *it;
+
+        if (client->is_request_ready()) {
+            // not efficient: this method will block if data can't be sent,
+            // but after it returns, the client can be removed from the list
+            handle_request(client, client->get_method(), client->get_path());
+
+            it = client_vect.erase(it);
+        }
+        else {
+            it++;
+        }
+    }
 }

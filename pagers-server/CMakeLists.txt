@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.13)
 
 # pico w project
 set(PICO_BOARD pico_w)
+# for openocd debug
+set(PICO_DEOPTIMIZED_DEBUG 1)
 
 # pico sdk
 include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
@@ -24,6 +26,7 @@ add_executable(${PROJECT_NAME}
         dnsserver/dnsserver.c
         http/httpserver.cpp
         http/httpserverclient.cpp
+        http/mime.cpp
 )
 
 pico_add_extra_outputs(${PROJECT_NAME})
