@@ -34,32 +34,9 @@ struct Pager {
 };
 std::vector<Pager> pagers;
 
-void json_test_page(HttpServerClient* client, void* arg) {
-    json.clear();
-    json["val"] = 123;
-    json["key"] = "value";
-    client->response_json(json, jbuf, 8*1024);
-}
-
-void form_test_page(HttpServerClient* client, void* arg) {
-    puts("headers:");
-    for (auto h : client->get_req_headers()) {
-        printf("\t%s: %s\n", h.first.c_str(), h.second.c_str());
-    }
-    puts("headers end");
-
-    puts("params:");
-    for (auto p : client->get_req_params()) {
-        printf("\t%s: %s\n", p.first.c_str(), p.second.c_str());
-    }
-    puts("end params");
-
-    client->response_ok("ok");
-}
-
 /* ------------------------------------------- PAGER UTILS ------------------------------------------- */
 
-bool pager_exits(unsigned short device_id) {
+bool pager_exists(unsigned short device_id) {
     for (auto& pager : pagers) {
         if (pager.device_id == device_id) {
             return true;
@@ -278,7 +255,7 @@ void http_pagers_pair(HttpServerClient* client, void* arg) {
     uint32_t id = client->get_req_param_int("id");
     pairing_device_id = id;
 
-    if (pager_exits(id)) {
+    if (pager_exists(id)) {
         client->response_ok("pager already exist... remove old pager");
         return;
     }
@@ -412,9 +389,6 @@ int main() {
     server.set_cb_arg(nullptr);
     server.start(80);
     server.static_content(&lfs, "/static");
-    server.on(Method::GET, "/json", json_test_page);
-    server.on(Method::GET, "/form", form_test_page);
-    server.on(Method::POST, "/form", form_test_page);
 
     /* WiFI scan */
     server.on(Method::GET, "/wifi/scan/start", http_wifi_scan_start);
