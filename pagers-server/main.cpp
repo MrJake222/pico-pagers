@@ -189,16 +189,21 @@ void http_pagers_pair(HttpServerClient* client, void* arg) {
     }
 
     uint32_t id = client->get_req_param_int("id");
+    Pager* pager;
 
-    if (pagers.pager_exists(id)) {
-        client->response_ok("pager already exist... remove old pager");
-        return;
+    // supports re-pairing (just sends pairing message)
+    if (!pagers.pager_exists(id)) {
+        // no pager in the system
+        pager = new Pager(id);
+        pagers.add_pager(pager);
+
+        printf("added pager, total: %d\n", pagers.size());
+    }
+    else {
+        pager = pagers.get_pager(id);
     }
 
-    auto pager = new Pager(id);
-    pagers.add_pager(pager);
 
-    printf("added pager, total: %d\n", pagers.size());
     pager->set_pair_msgs_left(DEFAULT_MSG_COUNT);
 
     client->response_ok("started pairing...");
@@ -214,7 +219,7 @@ void http_pagers_list(HttpServerClient* client, void* arg) {
     for (auto& r : pagers) {
         auto pager = r.second;
         printf("Pager list: %04x\n", pager->get_device_id());
-        json["pagers"][std::to_string(pager->get_device_id())] = 30; // TODO why
+        json["pagers"][std::to_string(pager->get_device_id())] = 30; // TODO remove meaningless data
     }
 
     client->response_json(json, jbuf, 8*1024);

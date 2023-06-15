@@ -35,6 +35,13 @@ function loadPagers() {
                   console.log('removing', pagerName);
                 };
 
+                const repairButton = document.createElement("button");
+                repairButton.innerHTML = 're-pair';
+                repairButton.onclick = function () {
+                  pairPagerId(pagerName);
+                  console.log('re-pairing', pagerName);
+                };
+
                 spanNameElement.textContent = pagerName + ": ";
                 spanValueElement.textContent = pagerValue;
                 liElement.appendChild(spanNameElement);
@@ -42,6 +49,7 @@ function loadPagers() {
                 liElement.appendChild(flashButton);
                 liElement.appendChild(abortFlashButton);
                 liElement.appendChild(removeButton);
+                liElement.appendChild(repairButton);
                 ulElement.appendChild(liElement);
             }
         }

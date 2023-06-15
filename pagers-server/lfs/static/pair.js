@@ -1,6 +1,5 @@
-function pairPager() {
+function pairPagerId(id) {
     console.log('Pairing...');
-    const id = document.getElementById("pagerIdInput").value;
     if (!id) {
         alert('Wrong id!');
         return;
@@ -14,4 +13,9 @@ function pairPager() {
         .catch(error => {
             console.error("Error pairing init:", error);
         });
+}
+
+function pairPager() {
+    const id = document.getElementById("pagerIdInput").value;
+    pairPagerId(id)
 }
