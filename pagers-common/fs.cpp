@@ -1,6 +1,7 @@
 #include "fs.hpp"
 
 #include <hardware/flash.h>
+#include <hardware/sync.h>
 
 #define FS_BASE_IN_FLASH (PICO_FLASH_SIZE_BYTES - FS_SIZE)
 #define FS_BASE_ABS      (XIP_NOCACHE_NOALLOC_BASE + FS_BASE_IN_FLASH)
@@ -19,10 +20,11 @@ int pico_read(const struct lfs_config *c, lfs_block_t block, lfs_off_t off, void
 // been erased. Negative error codes are propagated to the user.
 // May return LFS_ERR_CORRUPT if the block should be considered bad.
 int pico_prog(const struct lfs_config *c, lfs_block_t block, lfs_off_t off, const void *buffer, lfs_size_t size) {
+    uint32_t ints = save_and_disable_interrupts();
     flash_range_program(FS_BASE_IN_FLASH + block * FLASH_SECTOR_SIZE + off,
                         (const uint8_t*)buffer,
                         size);
-
+    restore_interrupts(ints);
     return 0;
 }
 
@@ -31,9 +33,11 @@ int pico_prog(const struct lfs_config *c, lfs_block_t block, lfs_off_t off, cons
 // are propagated to the user.
 // May return LFS_ERR_CORRUPT if the block should be considered bad.
 int pico_erase(const struct lfs_config *c, lfs_block_t block) {
+    uint32_t ints = save_and_disable_interrupts();
     flash_range_erase(FS_BASE_IN_FLASH + block * FLASH_SECTOR_SIZE,
                       1);
 
+    restore_interrupts(ints);
     return 0;
 }
 

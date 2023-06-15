@@ -15,7 +15,6 @@
 #include <tuple>
 
 lfs_t lfs;
-lfs_file_t file;
 
 #include "httpserver.hpp"
 #include "ArduinoJson.h"
@@ -29,7 +28,7 @@ const unsigned short DEFAULT_FLASHING_TIME = 30;
 unsigned long long sequence_number = 0;
 const uint8_t private_key[KEY_LENGTH_BYTES] = { 0 };
 
-PagerList pagers;
+PagerList pagers(&lfs, "/pagers");
 
 
 /* ------------------------------------------- WIFI ------------------------------------------- */
@@ -252,6 +251,7 @@ void http_pagers_remove(HttpServerClient* client, void* arg) {
 
     unsigned short device_id = client->get_req_param_int("id");
 
+    delete pagers.get_pager(device_id); // free memory
     bool res = pagers.remove_pager(device_id);
 
     client->response_ok(res ? "removed" : "pager not found");
@@ -309,6 +309,9 @@ int main() {
     }
 
     puts("fs mount ok");
+
+    pagers.load_fs();
+    puts("pagers load finished");
 
     // Initialise the access point
     printf("cyw43 initialization...\n");
@@ -419,5 +422,6 @@ int main() {
 
 
         server.loop();
+        pagers.loop();
     }
 }
