@@ -1,5 +1,5 @@
-if [[ $# != 2 ]]; then
-	echo "Usage: $0 [root dir for lfs] [openocd|picotool]"
+if [[ $# != 2 && $# != 3 ]]; then
+	echo "Usage: $0 [root dir for lfs] [openocd|picotool] [devnum for picotool]"
 	exit 1
 fi
 
@@ -15,8 +15,20 @@ if [[ $2 == "openocd" ]]; then
 		-c 'program lfs.bin reset exit 0x101F0000'
 
 elif [[ $2 == "picotool" ]]; then
-	# untested
-	picotool load -o 0x101F0000 lfs.bin -f
+	if [[ $3 != "" ]]; then
+		busport=$3
+		devfile="/sys/bus/usb/devices/$busport/devnum"
+		if [[ ! -f $devfile ]]; then
+	        	echo "no device detected at $busport"
+	        	exit 2
+		fi
+
+		devnum=$(cat $devfile)
+		echo "programming device $devnum"
+		picotool load -o 0x101F0000 lfs.bin -f --address $devnum
+	else
+		picotool load -o 0x101F0000 lfs.bin -f
+	fi
 fi
 
 rm lfs.bin

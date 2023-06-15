@@ -35,6 +35,7 @@ void frame_received(const volatile uint8_t* buf, uint bytes) {
 
 // device id
 unsigned short device_id = 0x1215;
+int flash_time_left = 0;
 const uint8_t public_key[KEY_LENGTH_BYTES] = { 0 };
 struct proto_data data;
 
@@ -47,6 +48,7 @@ int main() {
     // pair button
     gpio_init(BUTTON);
     gpio_set_dir(BUTTON, GPIO_IN);
+    gpio_set_pulls(BUTTON, true, false); // pullup
 
     // status leds
     gpio_init(LED_RED);    gpio_set_dir(LED_RED, GPIO_OUT);
@@ -98,13 +100,20 @@ int main() {
             // TODO verify sequence number
 
             if (data.message_type == MessageType::PAIR) {
-                printf("Received pairing message!\n\n\n");
-                is_pairing_mode = false;
-                device_id = data.receiver_id;
+                printf("Received pairing message!\n");
+                if (is_pairing_mode) {
+                    is_pairing_mode = false;
+                    device_id = data.receiver_id;
+                    printf("\n\n*** Paired with new device_id: %04x ***\n\n\n", device_id);
+                }
             }
 
             if (data.receiver_id == device_id) {
                 printf("Received message for me!\n\n\n");
+                if (data.message_type == MessageType::FLASH) {
+                    flash_time_left = data.message_param;
+                    printf("Received flashing message, time left: %ds\n", flash_time_left);
+                }
             }
 
             int time_seconds = time_us_64() / 1000000;
@@ -119,6 +128,16 @@ int main() {
 
             // set to false after the frame has been processed
             frame_present = false;
+        }
+
+        if (flash_time_left > 0) {
+            gpio_put(LED_YELLOW, true);
+            sleep_ms(500);
+            gpio_put(LED_YELLOW, false);
+            sleep_ms(500);
+
+            flash_time_left--;
+            printf("flash time left: %ds\n", flash_time_left);
         }
     }
 }

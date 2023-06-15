@@ -12,41 +12,23 @@
 #include "physical.hpp"
 #include <protocol.hpp>
 #include <vector>
+#include <tuple>
 
 lfs_t lfs;
-lfs_file_t file;
 
 #include "httpserver.hpp"
 #include "ArduinoJson.h"
+#include "pagers/pagerlist.hpp"
 
 char jbuf[8*1024];
 DynamicJsonDocument json(8*1024);
 
+const unsigned short DEFAULT_FLASHING_TIME = 30;
+
 unsigned long long sequence_number = 0;
 const uint8_t private_key[KEY_LENGTH_BYTES] = { 0 };
 
-void json_test_page(HttpServerClient* client, void* arg) {
-    json.clear();
-    json["val"] = 123;
-    json["key"] = "value";
-    client->response_json(json, jbuf, 8*1024);
-}
-
-void form_test_page(HttpServerClient* client, void* arg) {
-    puts("headers:");
-    for (auto h : client->get_req_headers()) {
-        printf("\t%s: %s\n", h.first.c_str(), h.second.c_str());
-    }
-    puts("headers end");
-
-    puts("params:");
-    for (auto p : client->get_req_params()) {
-        printf("\t%s: %s\n", p.first.c_str(), p.second.c_str());
-    }
-    puts("end params");
-
-    client->response_ok("ok");
-}
+PagerList pagers(&lfs, "/pagers");
 
 
 /* ------------------------------------------- WIFI ------------------------------------------- */
@@ -201,7 +183,6 @@ unsigned short pairing_device_id = -1;
 int pairing_messages_left = 0;
 
 void send_message(proto_data data) {
-    puts("sending message");
     struct proto_frame frame;
     sequence_number++;
     data.sequence_number = sequence_number;
@@ -210,17 +191,9 @@ void send_message(proto_data data) {
     proto_encrypt(private_key, &data, &frame);
 
     send_bytes((uint8_t*)&frame, PROTO_FRAME_SIZE);
-    send_wait_for_end();
 }
 
-// prepare and send a pairing message
 void send_pairing_message() {
-    if (pairing_messages_left <= 0) {
-        return;
-    }
-
-    pairing_messages_left--;
-
     struct proto_data data = {
             .receiver_id = pairing_device_id,
             .message_type = MessageType::PAIR,
@@ -228,7 +201,7 @@ void send_pairing_message() {
     };
     send_message(data);
 
-    printf("sending pairing message, pager id=%d\n", pairing_device_id);
+    printf("sending pairing message, pager id=%d, left=%d\n", pairing_device_id, pairing_messages_left-1);
 }
 
 void http_pagers_pair(HttpServerClient* client, void* arg) {
@@ -239,9 +212,78 @@ void http_pagers_pair(HttpServerClient* client, void* arg) {
 
     uint32_t id = client->get_req_param_int("id");
     pairing_device_id = id;
-    pairing_messages_left = 20;
 
-    client->response_ok("sending pair request to pager");
+    if (pagers.pager_exists(id)) {
+        client->response_ok("pager already exist... remove old pager");
+        return;
+    }
+
+    pairing_messages_left = 10;
+    auto pager = new Pager(pairing_device_id);
+    pagers.add_pager(pager);
+
+    printf("added pager, total: %d\n", pagers.size());
+
+    client->response_ok("started pairing...");
+}
+
+/* ------------------------------------------- Pagers management ------------------------------------------- */
+
+void http_pagers_list(HttpServerClient* client, void* arg) {
+    json.clear();
+
+    json["total_pagers"] = pagers.size();
+
+    for (auto& r : pagers) {
+        auto pager = r.second;
+        printf("Pager list: %04x\n", pager->get_device_id());
+        json["pagers"][std::to_string(pager->get_device_id())] = 30; // TODO why
+    }
+
+    client->response_json(json, jbuf, 8*1024);
+}
+
+void http_pagers_remove(HttpServerClient* client, void* arg) {
+    if (!client->has_req_param("id")) {
+        client->response_bad("no pager id given");
+        return;
+    }
+
+    unsigned short device_id = client->get_req_param_int("id");
+
+    delete pagers.get_pager(device_id); // free memory
+    bool res = pagers.remove_pager(device_id);
+
+    client->response_ok(res ? "removed" : "pager not found");
+}
+
+void http_pagers_flash(HttpServerClient* client, void* arg) {
+    if (!client->has_req_param("id")) {
+        client->response_bad("no pager id given");
+        return;
+    }
+
+    unsigned short device_id = client->get_req_param_int("id");
+
+    pagers.get_pager(device_id)->set_flashes_left(DEFAULT_FLASHING_TIME);
+
+    client->response_ok("flashing the pager");
+}
+
+void send_flash_messages() {
+    for (auto pair : pagers) {
+        auto pager = pair.second;
+        if (pager->any_flashes_left()) {
+            struct proto_data data = {
+                    .receiver_id = pager->get_device_id(),
+                    .message_type = MessageType::FLASH,
+                    .message_param = DEFAULT_FLASHING_TIME, // sets timer in client
+            };
+            send_message(data);
+            pager->decrease_flashing_count();
+            sleep_ms(50); // TODO why?
+        }
+    }
 }
 
 /* -------------------------------------------  ------------------------------------------- */
@@ -267,6 +309,9 @@ int main() {
     }
 
     puts("fs mount ok");
+
+    pagers.load_fs();
+    puts("pagers load finished");
 
     // Initialise the access point
     printf("cyw43 initialization...\n");
@@ -306,9 +351,6 @@ int main() {
     server.set_cb_arg(nullptr);
     server.start(80);
     server.static_content(&lfs, "/static");
-    server.on(Method::GET, "/json", json_test_page);
-    server.on(Method::GET, "/form", form_test_page);
-    server.on(Method::POST, "/form", form_test_page);
 
     /* WiFI scan */
     server.on(Method::GET, "/wifi/scan/start", http_wifi_scan_start);
@@ -320,6 +362,9 @@ int main() {
 
     /* Pair new pager */
     server.on(Method::GET, "/pagers/pair", http_pagers_pair);
+    server.on(Method::GET, "/pagers/list", http_pagers_list);
+    server.on(Method::GET, "/pagers/remove", http_pagers_remove);
+    server.on(Method::GET, "/pagers/flash", http_pagers_flash);
 
     /**
      *
@@ -357,14 +402,6 @@ int main() {
     while (1) {
         sleep_ms(250);
 
-        data.sequence_number++;
-
-        proto_checksum_calc(&data);
-        proto_encrypt(private_key, &data, &frame);
-
-        send_bytes((uint8_t*)&frame, PROTO_FRAME_SIZE);
-        send_wait_for_end();
-
         if (wifi_scan) {
             wifi_scan = false;
             do_wifi_scan();
@@ -376,12 +413,15 @@ int main() {
         }
 
         if (pairing_messages_left > 0) {
-            puts("sending pairing message");
-            pairing_messages_left--;
             send_pairing_message();
-            sleep_ms(250);
+            pairing_messages_left--;
+            sleep_ms(50);
         }
 
+        send_flash_messages();
+
+
         server.loop();
+        pagers.loop();
     }
 }

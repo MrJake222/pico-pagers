@@ -10,6 +10,8 @@
     <script type="text/javascript" src="wifi.js"></script>
     <script type="text/javascript" src="config.js"></script>
     <script type="text/javascript" src="pair.js"></script>
+    <script type="text/javascript" src="pagers.js"></script>
+    <script type="text/javascript" src="main.js" defer></script>
 </head>
     <body>
         <h1>Pagers Server</h1>
@@ -32,5 +34,10 @@
         <p>To pair a new pager you need to press pairing button on the pager, and then click Pair button below.</p>
         <input type="number" id="pagerIdInput" placeholder="id">
         <button onclick="pairPager()">Pair</button>
+
+        <h2>Pagers list</h2>
+        <button onclick="loadPagers()">Refresh</button>
+        <ul id="pagerList"></ul>
+
     </body>
 </html>

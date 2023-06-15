@@ -5,6 +5,8 @@ set(PICO_BOARD pico_w)
 # for openocd debug
 set(PICO_DEOPTIMIZED_DEBUG 1)
 
+message("Using PICO_SDK_PATH: $$ENV{PICO_SDK_PATH}")
+
 # pico sdk
 include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 
@@ -27,6 +29,8 @@ add_executable(${PROJECT_NAME}
         http/httpserver.cpp
         http/httpserverclient.cpp
         http/mime.cpp
+        pagers/pager.cpp
+        pagers/pagerlist.cpp
 )
 
 pico_add_extra_outputs(${PROJECT_NAME})

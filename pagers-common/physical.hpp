@@ -51,7 +51,6 @@ void send_setup();
 // this function is non-blocking, it starts a transfer
 // and returns
 void send_bytes(uint8_t* bytes, int count);
-void send_wait_for_end();
 
 // receiving
 typedef void(*RxCallback)(const volatile uint8_t* buf, volatile uint bytes);
