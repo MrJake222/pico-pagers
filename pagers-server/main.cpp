@@ -223,6 +223,8 @@ void http_pagers_pair(HttpServerClient* client, void* arg) {
     auto pager = new Pager(pairing_device_id);
     pagers.add_pager(pager);
 
+    printf("added pager, total: %d\n", pagers.size());
+
     client->response_ok("started pairing...");
 }
 
@@ -275,7 +277,7 @@ void send_flash_messages() {
             struct proto_data data = {
                     .receiver_id = pager->get_device_id(),
                     .message_type = MessageType::FLASH,
-                    .message_param = 30, // TODO why?
+                    .message_param = DEFAULT_FLASHING_TIME, // sets timer in client
             };
             send_message(data);
             pager->decrease_flashing_count();
