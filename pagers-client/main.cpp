@@ -39,6 +39,9 @@ int flash_time_left = 0;
 const uint8_t public_key[KEY_LENGTH_BYTES] = { 0 };
 struct proto_data data;
 
+uint64_t last_flash;
+bool flash_led_state = false;
+
 int main() {
 
     // UART on USB
@@ -130,14 +133,18 @@ int main() {
             frame_present = false;
         }
 
-        if (flash_time_left > 0) {
-            gpio_put(LED_YELLOW, true);
-            sleep_ms(500);
-            gpio_put(LED_YELLOW, false);
-            sleep_ms(500);
+        if ((flash_time_left > 0) && (time_us_64() - last_flash > 500000)) {
+            last_flash = time_us_64();
+            flash_led_state ^= true; // toggle
+            gpio_put(LED_YELLOW, flash_led_state);
 
-            flash_time_left--;
-            printf("flash time left: %ds\n", flash_time_left);
+            // this runs every half cycle (every toggle)
+
+            if (flash_led_state) {
+                // only full cycle
+                flash_time_left--;
+                printf("flash time left: %ds\n", flash_time_left);
+            }
         }
     }
 }
