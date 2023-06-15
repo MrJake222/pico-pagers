@@ -42,8 +42,8 @@ function loadPagers() {
                   console.log('re-pairing', pagerName);
                 };
 
-                spanNameElement.textContent = pagerName + ": ";
-                spanValueElement.textContent = pagerValue;
+                spanNameElement.textContent = pagerName;// + ": ";
+                spanValueElement.textContent = "";//pagerValue;
                 liElement.appendChild(spanNameElement);
                 liElement.appendChild(spanValueElement);
                 liElement.appendChild(flashButton);
