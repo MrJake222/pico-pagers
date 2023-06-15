@@ -14,18 +14,26 @@ function loadPagers() {
                 const spanNameElement = document.createElement("span");
                 const spanValueElement = document.createElement("span");
 
-                const button = document.createElement("button");
-                button.innerHTML = 'flash';
-                button.onclick = function () {
+                const flashButton = document.createElement("button");
+                flashButton.innerHTML = 'flash';
+                flashButton.onclick = function () {
                   flashPager(pagerName);
                   console.log('flashing', pagerName);
+                };
+
+                const removeButton = document.createElement("button");
+                removeButton.innerHTML = 'remove';
+                removeButton.onclick = function () {
+                  removePager(pagerName);
+                  console.log('removing', pagerName);
                 };
 
                 spanNameElement.textContent = pagerName + ": ";
                 spanValueElement.textContent = pagerValue;
                 liElement.appendChild(spanNameElement);
                 liElement.appendChild(spanValueElement);
-                liElement.appendChild(button);
+                liElement.appendChild(flashButton);
+                liElement.appendChild(removeButton);
                 ulElement.appendChild(liElement);
             }
         }
@@ -43,6 +51,17 @@ function flashPager(id) {
             loadPagers();
         })
         .catch(error => {
-            console.error("Error pairing init:", error);
+            console.error("Error flashing:", error);
+        });
+}
+
+function removePager(id) {
+    fetch(URL_PREFIX + `/pagers/remove?id=${id}`)
+        .then(data => {
+            console.log(data);
+            loadPagers();
+        })
+        .catch(error => {
+            console.error("Error removing:", error);
         });
 }
