@@ -24,7 +24,7 @@ lfs_t lfs;
 char jbuf[8*1024];
 DynamicJsonDocument json(8*1024);
 
-const unsigned short DEFAULT_FLASH_MSGS = 5;
+const unsigned short DEFAULT_MSG_COUNT = 5;
 
 unsigned long long sequence_number = 0;
 const uint8_t private_key[KEY_LENGTH_BYTES] = { 0 };
@@ -182,31 +182,6 @@ void http_wifi_connect_status(HttpServerClient* client, void* arg) {
 
 /* ------------------------------------------- Pagers pairing ------------------------------------------- */
 
-unsigned short pairing_device_id = -1;
-int pairing_messages_left = 0;
-
-void send_message(struct proto_data* data) {
-    sequence_number++;
-    data->sequence_number = sequence_number;
-
-    struct proto_frame frame;
-    proto_checksum_calc(data);
-    proto_encrypt(private_key, data, &frame);
-
-    send_bytes((uint8_t*)&frame, PROTO_FRAME_SIZE);
-}
-
-void send_pairing_message() {
-    struct proto_data data = {
-            .receiver_id = pairing_device_id,
-            .message_type = MessageType::PAIR,
-            .message_param = 0x0,
-    };
-    send_message(&data);
-
-    printf("sending pairing message, pager id=%d, left=%d\n", pairing_device_id, pairing_messages_left-1);
-}
-
 void http_pagers_pair(HttpServerClient* client, void* arg) {
     if (!client->has_req_param("id")) {
         client->response_bad("no pager id given");
@@ -214,18 +189,17 @@ void http_pagers_pair(HttpServerClient* client, void* arg) {
     }
 
     uint32_t id = client->get_req_param_int("id");
-    pairing_device_id = id;
 
     if (pagers.pager_exists(id)) {
         client->response_ok("pager already exist... remove old pager");
         return;
     }
 
-    pairing_messages_left = 10;
-    auto pager = new Pager(pairing_device_id);
+    auto pager = new Pager(id);
     pagers.add_pager(pager);
 
     printf("added pager, total: %d\n", pagers.size());
+    pager->set_pair_msgs_left(DEFAULT_MSG_COUNT);
 
     client->response_ok("started pairing...");
 }
@@ -273,15 +247,30 @@ void http_pagers_flash(HttpServerClient* client, void* arg) {
 
     unsigned short device_id = client->get_req_param_int("id");
     auto pager = pagers.get_pager(device_id);
-    pager->set_flash_msgs_left(DEFAULT_FLASH_MSGS);
+    pager->set_flash_msgs_left(DEFAULT_MSG_COUNT);
     pager->flash_time = client->get_req_param_int("time");
 
     client->response_ok("flashing the pager");
 }
 
-void send_flash_messages() {
+
+/* ------------------------------------------- Pager message queue ------------------------------------------- */
+
+void send_message(struct proto_data* data) {
+    sequence_number++;
+    data->sequence_number = sequence_number;
+
+    struct proto_frame frame;
+    proto_checksum_calc(data);
+    proto_encrypt(private_key, data, &frame);
+
+    send_bytes((uint8_t*)&frame, PROTO_FRAME_SIZE);
+}
+
+void send_messages() {
     for (auto pair : pagers) {
         auto pager = pair.second;
+
         if (pager->any_flash_msgs_left()) {
             struct proto_data data = {
                     .receiver_id = pager->get_device_id(),
@@ -290,6 +279,16 @@ void send_flash_messages() {
             };
             send_message(&data);
             pager->flash_msg_sent();
+        }
+
+        if (pager->any_pair_msgs_left()) {
+            struct proto_data data = {
+                    .receiver_id = pager->get_device_id(),
+                    .message_type = MessageType::PAIR,
+                    // no param
+            };
+            send_message(&data);
+            pager->pair_msg_sent();
         }
     }
 }
@@ -419,8 +418,6 @@ int main() {
     printf("sizeof proto_frame %u\n", sizeof(struct proto_frame));
 
     while (1) {
-        sleep_ms(250);
-
         if (wifi_scan) {
             wifi_scan = false;
             do_wifi_scan();
@@ -431,15 +428,9 @@ int main() {
             do_wifi_connect();
         }
 
-        if (pairing_messages_left > 0) {
-            send_pairing_message();
-            pairing_messages_left--;
-            sleep_ms(50);
-        }
+        send_messages();
 
-        send_flash_messages();
-
-        send_message(&data);
+        // send_message(&data);
 
         server.loop();
         pagers.loop();
