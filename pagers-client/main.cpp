@@ -48,6 +48,7 @@ int main() {
     // pair button
     gpio_init(BUTTON);
     gpio_set_dir(BUTTON, GPIO_IN);
+    gpio_set_pulls(BUTTON, true, false); // pullup
 
     // status leds
     gpio_init(LED_RED);    gpio_set_dir(LED_RED, GPIO_OUT);
@@ -96,13 +97,6 @@ int main() {
                 gpio_put(LED_RED, false);
             }
 
-            if (flash_time_left > 0) {
-                gpio_put(LED_YELLOW, true);
-                sleep_ms(500);
-                gpio_put(LED_YELLOW, false);
-                sleep_ms(500);
-            }
-
             // TODO verify sequence number
 
             if (data.message_type == MessageType::PAIR) {
@@ -134,6 +128,16 @@ int main() {
 
             // set to false after the frame has been processed
             frame_present = false;
+        }
+
+        if (flash_time_left > 0) {
+            gpio_put(LED_YELLOW, true);
+            sleep_ms(500);
+            gpio_put(LED_YELLOW, false);
+            sleep_ms(500);
+
+            flash_time_left--;
+            printf("flash time left: %ds\n", flash_time_left);
         }
     }
 }
