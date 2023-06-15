@@ -193,7 +193,6 @@ void HttpServerClient::send_string(const char* str) {
     cyw43_arch_lwip_begin();
     while (true) {
         int err = tcp_write(pcb, str, len, 0);
-        printf("tcp write err=%d\n", err);
         if (err == ERR_OK) {
             break;
         }

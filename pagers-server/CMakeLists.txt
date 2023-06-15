@@ -31,6 +31,7 @@ add_executable(${PROJECT_NAME}
         http/mime.cpp
         pagers/pager.cpp
         pagers/pagerlist.cpp
+        wififs.cpp
 )
 
 pico_add_extra_outputs(${PROJECT_NAME})

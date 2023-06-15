@@ -11,6 +11,7 @@ add_library(pagers-common STATIC
         lfs/lfs.c
         lfs/lfs_util.c
         fs.cpp
+        fsutil.cpp
         circularbuffer.cpp)
 
 target_link_libraries(${PROJECT_NAME}

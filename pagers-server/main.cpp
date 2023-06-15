@@ -3,6 +3,7 @@
 
 #include <lfs.h>
 #include <fs.hpp>
+#include <wififs.hpp>
 
 #include <pico/cyw43_arch.h>
 
@@ -31,7 +32,7 @@ const uint8_t private_key[KEY_LENGTH_BYTES] = { 0 };
 PagerList pagers(&lfs, "/pagers");
 
 
-/* ------------------------------------------- WIFI ------------------------------------------- */
+/* ------------------------------------------- WiFi Scan ------------------------------------------- */
 
 volatile bool wifi_scan = false;
 typedef std::map<std::string, cyw43_ev_scan_result_t> ScanResultsMap;
@@ -127,7 +128,7 @@ volatile char connect_pw[64];
 volatile uint32_t connect_auth;
 volatile int connect_err_code;
 
-void do_wifi_connect() {
+void do_wifi_connect(bool save = true) {
     cyw43_arch_enable_sta_mode();
 
     printf("connecting to wifi ssid='%s' pwd='%s' auth=0x%08lx\n", connect_ssid, connect_pw, connect_auth);
@@ -144,6 +145,8 @@ void do_wifi_connect() {
     }
     else {
         puts("connected");
+        if (save)
+            wifi_save(&lfs, (const char*)connect_ssid, (const char*)connect_pw, (uint32_t)connect_auth);
     }
 }
 
@@ -321,11 +324,22 @@ int main() {
     };
     printf("cyw43 initialised\n");
 
-    char ap_name[] = "pagers-server";
-    char ap_password[] = "password";
+    r = wifi_read(&lfs, (char*)connect_ssid, (char*)connect_pw, (uint32_t*)&connect_auth);
+    if (r < 0) {
+        // failed to read config
+        // enable AP mode
+        char ap_name[] = "pagers-server";
+        char ap_password[] = "password";
 
-    cyw43_arch_enable_ap_mode(ap_name, ap_password, CYW43_AUTH_WPA2_AES_PSK);
-    puts("ap init ok");
+        puts("ap init start");
+        cyw43_arch_enable_ap_mode(ap_name, ap_password, CYW43_AUTH_WPA2_AES_PSK);
+        puts("ap init ok");
+    }
+    else {
+        // read ok
+        printf("connect to %s\n", connect_ssid);
+        do_wifi_connect(false);
+    }
 
 
     ip4_addr_t gw;

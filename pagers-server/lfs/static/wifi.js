@@ -82,7 +82,7 @@ function checkConnectStatus() {
         .then(data => {
             console.log(data);
             if (data.success) {
-                alert('Connected to the wifi!')
+                alert('Connected to the wifi!\nIP: ' + data.ip)
             } else {
                 setScanningStatus('Failed to connect to the wifi... Trying again...');
                 setTimeout(checkConnectStatus, 1000);
