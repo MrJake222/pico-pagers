@@ -195,12 +195,6 @@ void send_message(proto_data data) {
 }
 
 void send_pairing_message() {
-    if (pairing_messages_left <= 0) {
-        return;
-    }
-
-    pairing_messages_left--;
-
     struct proto_data data = {
             .receiver_id = pairing_device_id,
             .message_type = MessageType::PAIR,
@@ -208,7 +202,7 @@ void send_pairing_message() {
     };
     send_message(data);
 
-    printf("sending pairing message, pager id=%d\n", pairing_device_id);
+    printf("sending pairing message, pager id=%d, left=%d\n", pairing_device_id, pairing_messages_left-1);
 }
 
 void http_pagers_pair(HttpServerClient* client, void* arg) {
@@ -414,9 +408,8 @@ int main() {
         }
 
         if (pairing_messages_left > 0) {
-            puts("sending pairing message");
-            pairing_messages_left--;
             send_pairing_message();
+            pairing_messages_left--;
             sleep_ms(50);
         }
 
