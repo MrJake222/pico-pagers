@@ -24,7 +24,7 @@ lfs_t lfs;
 char jbuf[8*1024];
 DynamicJsonDocument json(8*1024);
 
-const unsigned short DEFAULT_FLASHING_TIME = 30;
+const unsigned short DEFAULT_FLASH_MSGS = 5;
 
 unsigned long long sequence_number = 0;
 const uint8_t private_key[KEY_LENGTH_BYTES] = { 0 };
@@ -266,9 +266,15 @@ void http_pagers_flash(HttpServerClient* client, void* arg) {
         return;
     }
 
-    unsigned short device_id = client->get_req_param_int("id");
+    if (!client->has_req_param("time")) {
+        client->response_bad("no pager flash time given");
+        return;
+    }
 
-    pagers.get_pager(device_id)->set_flashes_left(DEFAULT_FLASHING_TIME);
+    unsigned short device_id = client->get_req_param_int("id");
+    auto pager = pagers.get_pager(device_id);
+    pager->set_flash_msgs_left(DEFAULT_FLASH_MSGS);
+    pager->flash_time = client->get_req_param_int("time");
 
     client->response_ok("flashing the pager");
 }
@@ -276,15 +282,14 @@ void http_pagers_flash(HttpServerClient* client, void* arg) {
 void send_flash_messages() {
     for (auto pair : pagers) {
         auto pager = pair.second;
-        if (pager->any_flashes_left()) {
+        if (pager->any_flash_msgs_left()) {
             struct proto_data data = {
                     .receiver_id = pager->get_device_id(),
                     .message_type = MessageType::FLASH,
-                    .message_param = DEFAULT_FLASHING_TIME, // sets timer in client
+                    .message_param = pager->flash_time, // sets timer in client
             };
             send_message(&data);
-            pager->decrease_flashing_count();
-            sleep_ms(50); // TODO why?
+            pager->flash_msg_sent();
         }
     }
 }
