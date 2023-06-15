@@ -17,15 +17,8 @@ function loadPagers() {
                 const flashButton = document.createElement("button");
                 flashButton.innerHTML = 'flash';
                 flashButton.onclick = function () {
-                  flashPager(pagerName, 30);
+                  flashPager(pagerName);
                   console.log('flashing', pagerName);
-                };
-
-                const abortFlashButton = document.createElement("button");
-                abortFlashButton.innerHTML = 'abort';
-                abortFlashButton.onclick = function () {
-                  flashPager(pagerName, 0);
-                  console.log('aborting', pagerName);
                 };
 
                 const removeButton = document.createElement("button");
@@ -40,7 +33,6 @@ function loadPagers() {
                 liElement.appendChild(spanNameElement);
                 liElement.appendChild(spanValueElement);
                 liElement.appendChild(flashButton);
-                liElement.appendChild(abortFlashButton);
                 liElement.appendChild(removeButton);
                 ulElement.appendChild(liElement);
             }
@@ -52,8 +44,8 @@ function loadPagers() {
     });
 }
 
-function flashPager(id, time) {
-    fetch(URL_PREFIX + `/pagers/flash?id=${id}&time=${time}`)
+function flashPager(id) {
+    fetch(URL_PREFIX + `/pagers/flash?id=${id}`)
         .then(data => {
             console.log(data);
             // loadPagers();
