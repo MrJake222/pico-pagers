@@ -185,13 +185,13 @@ void http_wifi_connect_status(HttpServerClient* client, void* arg) {
 unsigned short pairing_device_id = -1;
 int pairing_messages_left = 0;
 
-void send_message(proto_data data) {
-    struct proto_frame frame;
+void send_message(struct proto_data* data) {
     sequence_number++;
-    data.sequence_number = sequence_number;
+    data->sequence_number = sequence_number;
 
-    proto_checksum_calc(&data);
-    proto_encrypt(private_key, &data, &frame);
+    struct proto_frame frame;
+    proto_checksum_calc(data);
+    proto_encrypt(private_key, data, &frame);
 
     send_bytes((uint8_t*)&frame, PROTO_FRAME_SIZE);
 }
@@ -202,7 +202,7 @@ void send_pairing_message() {
             .message_type = MessageType::PAIR,
             .message_param = 0x0,
     };
-    send_message(data);
+    send_message(&data);
 
     printf("sending pairing message, pager id=%d, left=%d\n", pairing_device_id, pairing_messages_left-1);
 }
@@ -282,7 +282,7 @@ void send_flash_messages() {
                     .message_type = MessageType::FLASH,
                     .message_param = DEFAULT_FLASHING_TIME, // sets timer in client
             };
-            send_message(data);
+            send_message(&data);
             pager->decrease_flashing_count();
             sleep_ms(50); // TODO why?
         }
@@ -434,6 +434,7 @@ int main() {
 
         send_flash_messages();
 
+        send_message(&data);
 
         server.loop();
         pagers.loop();

@@ -109,7 +109,7 @@ int main() {
             }
 
             if (data.receiver_id == device_id) {
-                printf("Received message for me!\n\n\n");
+                // printf("Received message for me!\n\n\n");
                 if (data.message_type == MessageType::FLASH) {
                     flash_time_left = data.message_param;
                     printf("Received flashing message, time left: %ds\n", flash_time_left);
