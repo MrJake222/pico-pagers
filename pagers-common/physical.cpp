@@ -84,16 +84,16 @@ void pwm_wrap_irq() {
 }
 
 void send_bytes(uint8_t* bytes, int count) {
+    // wait for end of previous transfer
+    while (tx_transfer);
+    sleep_us(SPACING_GENERATED_US);
+
+    // start new transfer
     memcpy((void*)tx_bytes, (void*)bytes, count);
     tx_byte_count = count;
     tx_bit_index = 0;
     tx_byte_index = 0;
     tx_transfer = true;
-}
-
-void send_wait_for_end() {
-    while (tx_transfer);
-    sleep_us(SPACING_GENERATED_US);
 }
 
 

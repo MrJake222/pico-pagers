@@ -19,6 +19,7 @@ lfs_file_t file;
 
 #include "httpserver.hpp"
 #include "ArduinoJson.h"
+#include "pagers/pagerlist.hpp"
 
 char jbuf[8*1024];
 DynamicJsonDocument json(8*1024);
@@ -28,42 +29,7 @@ const unsigned short DEFAULT_FLASHING_TIME = 30;
 unsigned long long sequence_number = 0;
 const uint8_t private_key[KEY_LENGTH_BYTES] = { 0 };
 
-struct Pager {
-    unsigned short device_id;
-    unsigned short flashing_time_left;
-};
-std::vector<Pager> pagers;
-
-/* ------------------------------------------- PAGER UTILS ------------------------------------------- */
-
-bool pager_exists(unsigned short device_id) {
-    for (auto& pager : pagers) {
-        if (pager.device_id == device_id) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool remove_pager(unsigned short device_id_to_remove) {
-    for (auto it = pagers.begin(); it != pagers.end(); ++it) {
-        if (it->device_id == device_id_to_remove) {
-            pagers.erase(it);
-            return true;
-        }
-    }
-    return false;
-}
-
-bool set_flashing_time_left(unsigned short device_id, unsigned short flashing_time_left) {
-    for (auto& pager : pagers) {
-        if (pager.device_id == device_id) {
-            pager.flashing_time_left = flashing_time_left;
-            return true;
-        }
-    }
-    return false;
-}
+PagerList pagers;
 
 
 /* ------------------------------------------- WIFI ------------------------------------------- */
@@ -226,7 +192,6 @@ void send_message(proto_data data) {
     proto_encrypt(private_key, &data, &frame);
 
     send_bytes((uint8_t*)&frame, PROTO_FRAME_SIZE);
-    send_wait_for_end();
 }
 
 void send_pairing_message() {
@@ -255,16 +220,14 @@ void http_pagers_pair(HttpServerClient* client, void* arg) {
     uint32_t id = client->get_req_param_int("id");
     pairing_device_id = id;
 
-    if (pager_exists(id)) {
+    if (pagers.pager_exists(id)) {
         client->response_ok("pager already exist... remove old pager");
         return;
     }
 
     pairing_messages_left = 10;
-    Pager pager;
-    pager.device_id = pairing_device_id;
-    pager.flashing_time_left = 0;
-    pagers.push_back(pager);
+    auto pager = new Pager(pairing_device_id);
+    pagers.add_pager(pager);
 
     client->response_ok("started pairing...");
 }
@@ -277,8 +240,9 @@ void http_pagers_list(HttpServerClient* client, void* arg) {
     json["total_pagers"] = pagers.size();
 
     for (auto& r : pagers) {
-        printf("Pager list: %04x\n", r.device_id);
-        json["pagers"][std::to_string(r.device_id)] = r.flashing_time_left;
+        auto pager = r.second;
+        printf("Pager list: %04x\n", pager->get_device_id());
+        json["pagers"][std::to_string(pager->get_device_id())] = 30; // TODO why
     }
 
     client->response_json(json, jbuf, 8*1024);
@@ -292,7 +256,7 @@ void http_pagers_remove(HttpServerClient* client, void* arg) {
 
     unsigned short device_id = client->get_req_param_int("id");
 
-    bool res = remove_pager(device_id);
+    bool res = pagers.remove_pager(device_id);
 
     client->response_ok(res ? "removed" : "pager not found");
 }
@@ -305,24 +269,23 @@ void http_pagers_flash(HttpServerClient* client, void* arg) {
 
     unsigned short device_id = client->get_req_param_int("id");
 
-    set_flashing_time_left(device_id, DEFAULT_FLASHING_TIME);
+    pagers.get_pager(device_id)->set_flashes_left(DEFAULT_FLASHING_TIME);
 
     client->response_ok("flashing the pager");
 }
 
 void send_flash_messages() {
-    for (auto it = pagers.begin(); it != pagers.end(); ++it) {
-        if (it->flashing_time_left >= 0) {
+    for (auto pair : pagers) {
+        auto pager = pair.second;
+        if (pager->any_flashes_left()) {
             struct proto_data data = {
-                    .receiver_id = it->device_id,
+                    .receiver_id = pager->get_device_id(),
                     .message_type = MessageType::FLASH,
-                    .message_param = it->flashing_time_left,
+                    .message_param = 30, // TODO why?
             };
             send_message(data);
-            if (it->flashing_time_left > 0) {
-                it->flashing_time_left--;
-            }
-            sleep_ms(50);
+            pager->decrease_flashing_count();
+            sleep_ms(50); // TODO why?
         }
     }
 }

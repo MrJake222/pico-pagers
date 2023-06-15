@@ -29,6 +29,8 @@ add_executable(${PROJECT_NAME}
         http/httpserver.cpp
         http/httpserverclient.cpp
         http/mime.cpp
+        pagers/pager.cpp
+        pagers/pagerlist.cpp
 )
 
 pico_add_extra_outputs(${PROJECT_NAME})
