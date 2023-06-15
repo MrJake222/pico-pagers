@@ -9,6 +9,7 @@ function pairPager() {
     fetch(URL_PREFIX + `/pagers/pair?id=${id}`)
         .then(data => {
             console.log(data);
+            loadPagers();
         })
         .catch(error => {
             console.error("Error pairing init:", error);

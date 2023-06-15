@@ -48,7 +48,7 @@ function flashPager(id) {
     fetch(URL_PREFIX + `/pagers/flash?id=${id}`)
         .then(data => {
             console.log(data);
-            loadPagers();
+            // loadPagers();
         })
         .catch(error => {
             console.error("Error flashing:", error);
