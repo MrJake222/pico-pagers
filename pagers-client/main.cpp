@@ -115,8 +115,8 @@ int main() {
                 }
             }
 
-            for (int i=0; i<PROTO_FRAME_SIZE; i++)
-                printf("%02x ", ((uint8_t*)&frame)[i]);
+            // for (int i=0; i<PROTO_FRAME_SIZE; i++)
+            //     printf("%02x ", ((uint8_t*)&frame)[i]);
 
             int time_seconds = time_us_64() / 1000000;
             printf("[%02d:%02d] rid=%04x, seq=%16llx, type=%04x, param=%04x, checksum=%04x [%s]\n",

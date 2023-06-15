@@ -379,37 +379,7 @@ int main() {
     server.on(Method::GET, "/pagers/remove", http_pagers_remove);
     server.on(Method::GET, "/pagers/flash", http_pagers_flash);
 
-    /**
-     *
-     * REST OF THE CODE
-     *
-     */
-
-
-    struct proto_data data = {
-            .sequence_number = 0, //0xCAFEDEADBEEFCAFE,
-            .receiver_id = 0x1215,
-            .message_type = MessageType::DEFAULT,
-            .message_param = 0xACDC
-    };
-
-    struct proto_frame frame;
-
     send_setup();
-
-    // for testing
-    gpio_init(2);
-    gpio_set_dir(2, GPIO_OUT);
-
-    proto_checksum_calc(&data);
-    proto_encrypt(&data, &frame);
-    printf("sending: ");
-    for (int i=0; i<PROTO_FRAME_SIZE; i++)
-        printf("%02x ", ((uint8_t*)&frame)[i]);
-    printf("\n");
-
-    printf("sizeof proto_data %u\n", sizeof(struct proto_data));
-    printf("sizeof proto_frame %u\n", sizeof(struct proto_frame));
 
     while (1) {
         sleep_ms(250);
@@ -431,8 +401,6 @@ int main() {
         }
 
         send_flash_messages();
-
-        send_message(&data);
 
         server.loop();
         pagers.loop();
