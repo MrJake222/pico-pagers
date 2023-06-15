@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 # this library files
 add_library(pagers-common STATIC
-        protocol.cpp
+        protocol.cpp security.cpp
         physical.cpp crc.cpp
         lfs/lfs.c
         lfs/lfs_util.c

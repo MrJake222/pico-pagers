@@ -27,7 +27,6 @@ DynamicJsonDocument json(8*1024);
 const unsigned short DEFAULT_FLASHING_TIME = 30;
 
 unsigned long long sequence_number = 0;
-const uint8_t private_key[KEY_LENGTH_BYTES] = { 0 };
 
 PagerList pagers(&lfs, "/pagers");
 
@@ -191,7 +190,7 @@ void send_message(struct proto_data* data) {
 
     struct proto_frame frame;
     proto_checksum_calc(data);
-    proto_encrypt(private_key, data, &frame);
+    proto_encrypt(data, &frame);
 
     send_bytes((uint8_t*)&frame, PROTO_FRAME_SIZE);
 }
@@ -394,7 +393,6 @@ int main() {
             .message_param = 0xACDC
     };
 
-    const uint8_t private_key[KEY_LENGTH_BYTES] = { 0 };
     struct proto_frame frame;
 
     send_setup();
@@ -404,9 +402,9 @@ int main() {
     gpio_set_dir(2, GPIO_OUT);
 
     proto_checksum_calc(&data);
-    proto_encrypt(private_key, &data, &frame);
+    proto_encrypt(&data, &frame);
     printf("sending: ");
-    for (int i=0; i<PROTO_DATA_SIZE; i++)
+    for (int i=0; i<PROTO_FRAME_SIZE; i++)
         printf("%02x ", ((uint8_t*)&frame)[i]);
     printf("\n");
 
