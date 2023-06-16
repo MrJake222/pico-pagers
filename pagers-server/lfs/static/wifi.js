@@ -69,7 +69,7 @@ function connectToWiFi(ssid) {
     fetch(URL_PREFIX + `/wifi/connect?ssid=${selectedSSID}&password=${password}&auth=4`)
         .then(data => {
             console.log(data);
-            checkConnectStatus();
+            setTimeout(checkConnectStatus, 500);
         })
         .catch(error => {
             console.error("Error connecting to WiFi:", error);
