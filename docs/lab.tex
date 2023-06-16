@@ -23,6 +23,21 @@
 	urlcolor=magenta
 }
 
+\usepackage{algorithm}
+\usepackage{algpseudocode} % pseudokod
+\newtheorem{definition}{Def}
+% algorytmy po polsku
+\floatname{algorithm}{Algorytm}
+\floatname{required}{W}
+\renewcommand{\listalgorithmname}{Spis algorytmów}
+%cmds
+\algnewcommand\algorithmicto{\textbf{to}}
+\algnewcommand\algorithmicand{\textbf{and }}
+\algnewcommand\algorithmicor{\textbf{or }}
+\algnewcommand\algorithmictrue{\textbf{true}}
+\algnewcommand\algorithmicfalse{\textbf{false}}
+\algdef{S}[FOR]{ForTo}[3]{\algorithmicfor \  $ #1 \gets #2 $ \algorithmicto \ $ #3 $ \algorithmicdo}
+
 % bez odstępu w itemize
 \let\tempone\itemize
 \let\temptwo\enditemize
@@ -186,5 +201,36 @@
 	 \section{Serwer HTTP}
 	 	Powstała własna implementacja serwera HTTP. Obsługuje on metody GET oraz POST. Interpretuje parametry URL jak i format \lstinline|application/x-www-form-urlencoded| używany w formularzach. Używa LittleFS do wysyłania statycznych plików. Nacisk został położony na wygodny interfejs do obsługi serwera.
 	 	\img{pgm/http_init}{Wygodny interfejs serwera HTTP}
+	 	
+	 \section{Kryptografia}
+	 	Aby oferować podstawowy poziom bezpieczeństwa nasze rozwiązanie szyfruje wiadomości szyfrem RSA używając 32-bitowego klucza. Przesyłana jest także zaszyfrowana suma kontrolna do sprawdzania poprawności zdekodowanych danych. Funkcjonuje to analogicznie do podpisu cyfrowego
+
+		\begin{algorithm}[H]
+			\caption{Szyfrowanie}
+			\begin{algorithmic}[1]
+				\State (n, d) -- klucz prywatny
+				\Function{Szyfruj}{dlugosc, data, enc}
+				\ForTo{i}{0}{dlugosc-1}
+				\State $\lstinline|enc[i]| \equiv \lstinline|data[i]|^d$ $(mod \; n)$
+				\EndFor
+				\EndFunction
+			\end{algorithmic}
+		\end{algorithm}
+		
+		\begin{algorithm}[H]
+			\caption{Deszyfrowanie}
+			\begin{algorithmic}[1]
+				\State (n, e) -- klucz publiczny
+				\Function{Odszyfruj}{dlugosc, data, enc}
+				\ForTo{i}{0}{dlugosc-1}
+				\State $\lstinline|enc[i]| \equiv \lstinline|data[i]|^e$ $(mod \; n)$
+				\EndFor
+				\EndFunction
+			\end{algorithmic}
+		\end{algorithm}
+		
+	 	Algorytm dzieli wejściowe dane na 16-bitowe bloki i szyfruje je do bloków 32-bitowych. Składowe kluczy mają po 32 bity. Wiadomość wydłuża się dwukrotnie. Teraz jej długość to 32 bajty.
+	 	
+
 	 
 \end{document}
