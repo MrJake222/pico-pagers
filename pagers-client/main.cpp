@@ -14,7 +14,7 @@ const int LED_GREEN = 13;
 volatile bool frame_present;
 volatile struct proto_frame frame;
 
-bool previous_button_state = false;
+bool previous_button_state = true; // pull up
 bool is_pairing_mode = false;
 
 void frame_received(const volatile uint8_t* buf, uint bytes) {
@@ -41,6 +41,9 @@ struct proto_data data;
 
 uint64_t last_flash;
 bool flash_led_state = false;
+
+uint64_t last_pair_flash;
+bool pair_led_state = false;
 
 int main() {
 
@@ -80,11 +83,15 @@ int main() {
                 printf("button pressed\n");
                 previous_button_state = true;
                 is_pairing_mode = !is_pairing_mode;
+                if (!is_pairing_mode)
+                    gpio_put(LED_YELLOW, false);
                 printf("pairing mode %d\n", is_pairing_mode);
+                sleep_ms(50); // debounce
             }
         } else {
             previous_button_state = false;
         }
+
         if (frame_present) {
             // TODO check return value
             proto_decrypt(public_key, (struct proto_frame*)&frame, &data);
@@ -106,6 +113,7 @@ int main() {
                 printf("Received pairing message!\n");
                 if (is_pairing_mode) {
                     is_pairing_mode = false;
+                    gpio_put(LED_YELLOW, false);
                     device_id = data.receiver_id;
                     printf("\n\n*** Paired with new device_id: %04x ***\n\n\n", device_id);
                 }
@@ -116,6 +124,8 @@ int main() {
                 if (data.message_type == MessageType::FLASH) {
                     flash_time_left = data.message_param;
                     printf("Received flashing message, time left: %ds\n", flash_time_left);
+                    if (flash_time_left == 0)
+                        gpio_put(LED_YELLOW, false);
                 }
             }
 
@@ -133,7 +143,17 @@ int main() {
             frame_present = false;
         }
 
+        // pair mode flashing
+        if (is_pairing_mode && (time_us_64() - last_pair_flash > 100000)) {
+            // every 100ms
+            last_pair_flash = time_us_64();
+            pair_led_state ^= true; // toggle
+            gpio_put(LED_YELLOW, pair_led_state);
+        }
+
+        // flashing
         if ((flash_time_left > 0) && (time_us_64() - last_flash > 500000)) {
+            // every 500ms
             last_flash = time_us_64();
             flash_led_state ^= true; // toggle
             gpio_put(LED_YELLOW, flash_led_state);
@@ -144,6 +164,8 @@ int main() {
                 // only full cycle
                 flash_time_left--;
                 printf("flash time left: %ds\n", flash_time_left);
+                if (flash_time_left == 0)
+                    gpio_put(LED_YELLOW, false);
             }
         }
     }
