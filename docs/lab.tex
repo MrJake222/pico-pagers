@@ -113,24 +113,54 @@
 	% fragmenty kodu)
 	
 	\section{Wprowadzenie}
-		Dummy
-		
+		W ramach projektu został przygotowany system Pico Pagers, który został zaprojektowany z myślą o automatyzacji procesu obsługi klienta w restauracjach. System składa się z dwóch urządzeń: \emph{Pagers Server}, który jest odpowiedzialny za zarządzanie klientami oraz \emph{Pagers Client}, który informuje gości o statusie ich zamówienia.
+
     \section{Uruchomienie}
         W celu skorzystania z systemu należy go początkowo skonfigurować. Do uruchomienia potrzebne są:
         \begin{itemize}
             \item sieć WiFi (2.4 GHz),
             \item urządzenie (np. telefon, komputer) połączone z tą siecią WiFi.
         \end{itemize}
-        \subsection{Konfiguracja urządzenia}
+        \subsection{Konfiguracja sieci WiFi}
         Konfiguracja urządzenia przebiega w następujący sposób:
         \begin{enumerate}
             \item Podłączamy \emph{Pagers Server} do zasilania.
             \item Na dowolnym urządzeniu elektronicznym wyszukujemy sieć WiFi o nazwie \mbox{\emph{pagers-server}}, łączymy się z nią podając hasło \mbox{\emph{password}}.
             \item Używając przeglądarki internetowej wchodzimy na adres \url{http://192.168.4.1}.
+            \item Przechodzimy do sekcji \emph{Setup the WiFi connection}
             \item Wyszukujemy dostępne sieci WiFi używając przycisku \emph{Initiate Scan}.
             \img{config/scan_init}{Skanowanie sieci WiFi}
-            \item Wybieramy naszą sieć WiFi oraz podajemy do niej hasło. Klikamy \emph{Connect} w celu połączenia się z wybraną siecią.
+            \item Wybieramy naszą sieć WiFi oraz podajemy do niej hasło.
+            \item Klikamy \emph{Connect} w celu połączenia się z wybraną siecią.
+            \item Kopiujemy podany adres urządzenia.
+            \item Łączymy swoje urządzenie z siecią WiFi.
+            \item Wchodzimy pod skopiowany adres urządzenia, gdzie znajdziemy panel zarządzania klientami.
         \end{enumerate}
+
+        \pagebreak
+        \subsection{Parowanie klienta}
+        Dodawanie nowego \emph{Pagers Client} przebiega w następujący sposób:
+        \begin{enumerate}
+            \item W panelu zarządzania przechodzimy do sekcji \emph{Pair pager}
+            \img{config/pagers_pair}{Parowanie nowego klienta}
+            \item Wpisujemy \emph{id} nowego klienta.
+            \item Klikamy przycisk \emph{Pair}. Pozostawiamy wyświetlony alert.
+            \img{config/pair_alert}{Alert potwierdzający}
+            \item Na urządzeniu \emph{Pagers Client} wciskamy przycisk służący do parowania. Urządzenie potwierdzi, że jest w trybie parowania, migając żółtą diodą.
+            \item Klikamy przycisk \emph{OK} na alercie, by ukończyć parowanie.
+        \end{enumerate}
+
+        \pagebreak
+        \subsection{Zarządzanie klientem}
+        Panel zarządzania wyświetla listę klientów oraz umożliwia nimi sterowanie.
+        \img{config/pagers_list}{Lista sparowanych urządzeń}
+        Dostępne akcje:
+        \begin{itemize}
+            \item \emph{flash} - wywołanie klienta,
+            \item \emph{abort} - przerwanie wywoływania,
+            \item \emph{remove} - usunięcie urządzenia,
+            \item \emph{re-pair} - ponowne parowanie.
+        \end{itemize}
 
     \pagebreak
 
@@ -201,9 +231,9 @@
 	 \section{Serwer HTTP}
 	 	Powstała własna implementacja serwera HTTP. Obsługuje on metody GET oraz POST. Interpretuje parametry URL jak i format \lstinline|application/x-www-form-urlencoded| używany w formularzach. Używa LittleFS do wysyłania statycznych plików. Nacisk został położony na wygodny interfejs do obsługi serwera.
 	 	\img{pgm/http_init}{Wygodny interfejs serwera HTTP}
-	 	
+
 	 \section{Kryptografia}
-	 	Aby oferować podstawowy poziom bezpieczeństwa nasze rozwiązanie szyfruje wiadomości szyfrem RSA używając 32-bitowego klucza. Przesyłana jest także zaszyfrowana suma kontrolna do sprawdzania poprawności zdekodowanych danych. Funkcjonuje to analogicznie do podpisu cyfrowego
+	 	Aby oferować podstawowy poziom bezpieczeństwa, nasze rozwiązanie szyfruje wiadomości szyfrem RSA używając 32-bitowego klucza. Przesyłana jest także zaszyfrowana suma kontrolna do sprawdzania poprawności zdekodowanych danych. Funkcjonuje to analogicznie do podpisu cyfrowego
 
 		\begin{algorithm}[H]
 			\caption{Szyfrowanie}
