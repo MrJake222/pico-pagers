@@ -113,7 +113,10 @@
 	% fragmenty kodu)
 	
 	\section{Wprowadzenie}
+    \subsection{Opis projektu}
 		W ramach projektu został przygotowany system Pico Pagers, który został zaprojektowany z myślą o automatyzacji procesu obsługi klienta w restauracjach. System składa się z dwóch urządzeń: \emph{Pagers Server}, który jest odpowiedzialny za zarządzanie klientami oraz \emph{Pagers Client}, który informuje gości o statusie ich zamówienia.
+    \subsection{Struktura systemu}
+    \img{graphs/structure}{Struktura projektu}
 
     \section{Uruchomienie}
         W celu skorzystania z systemu należy go początkowo skonfigurować. Do uruchomienia potrzebne są:
@@ -175,7 +178,27 @@
     \section{Protokół komunikacyjny}
 		Zastosowaliśmy moduły komunikacyjne 433 MHz. Skłoniły nas do tego niska cena i prostota obsługi oraz brak wymaganej komunikacji zwrotnej przez nasze urządzenia.
 
-		\imgsidebyside{dev/tx}{Nadajnik}{dev/rx}{Odbiornik}
+        \imgsidebyside{dev/tx}{Nadajnik}{dev/rx}{Odbiornik}
+
+        \subsection{Struktura protokołu $\texttt{proto\_data}$}
+
+        Struktura $\texttt{proto\_data}$ definiuje format danych używanych do komunikacji serwera z pagerami. Składa się z następujących pól:
+
+        \begin{itemize}
+            \item $\mathbf{sequence\_number}$ - wartość typu `unsigned long`, identyfikująca numer sekwencyjny pakietu,
+            \item $\mathbf{receiver\_id}$ - wartość typu `unsigned short`, identyfikująca odbiorcę wiadomości,
+            \item $\mathbf{message\_type}$ - wartość typu `unsigned short`, identyfikująca typ wiadomości, przyjmująca wartości z wyliczenia $MessageType$: $DEFAULT$, $PAIR$ oraz $FLASH$,
+            \item $\mathbf{message\_param}$ - wartość typu `unsigned short`, przechowująca parametr wiadomości,
+            \item $\mathbf{checksum}$ - wartość typu `unsigned short`, służąca do weryfikacji poprawności przesłanych danych.
+        \end{itemize}
+
+        Pole $\texttt{message\_type}$ jest typu wyliczeniowego $\texttt{MessageType}$, który definiuje wartości możliwe do przypisania dla tego pola. Wartości te to:
+        \begin{itemize}
+            \item $\texttt{DEFAULT}$ - wartość $0xDBDB$, testowy, domyślny typ wiadomości,
+            \item $\texttt{PAIR}$ - wartość $0xBDBD$, typ wiadomości odpowiedzialny za parowanie pagera z serwerem (w polu $receiver\_id$ umieszcza nowe $id$ pagera),
+            \item $\texttt{FLASH}$ - wartość $0xBBDD$, typ wiadomości odpowiedzialny za wywołanie pagera (w $message\_param$ podaje się czas wywołania).
+        \end{itemize}
+
 		\subsection{Warstwa sprzętowa}
 			Obsługa nadajnika/odbiornika opiera się na podłączeniu zasilania i nadawania/odbierania poprzez jeden dostępny przewód danych. Niestety te moduły zasilane są napięciem 5V i taki standard napięć stosują na wyjściu. Pi Pico toleruje tylko 3.3V. Konieczna więc była konwersja poziomów logicznych.
 
@@ -237,8 +260,21 @@
 
 
 	 \section{Serwer HTTP}
-	 	Powstała własna implementacja serwera HTTP. Obsługuje on metody GET oraz POST. Interpretuje parametry URL jak i format \lstinline|application/x-www-form-urlencoded| używany w formularzach. Używa LittleFS do wysyłania statycznych plików. Nacisk został położony na wygodny interfejs do obsługi serwera.
-	 	\img{pgm/http_init}{Wygodny interfejs serwera HTTP}
+        \subsection{Opis}
+            Powstała własna implementacja serwera HTTP. Obsługuje on metody GET oraz POST. Interpretuje parametry URL jak i format \lstinline|application/x-www-form-urlencoded| używany w formularzach. Używa LittleFS do wysyłania statycznych plików. Nacisk został położony na wygodny interfejs do obsługi serwera.
+            \img{pgm/http_init}{Wygodny interfejs serwera HTTP}
+        \subsection{Dostępne endpointy}
+        \begin{itemize}
+            \item \emph{GET /wifi/scan/start} - rozpoczęcie skanowania sieci WiFi,
+            \item \emph{GET /wifi/scan/status} - zwrócenie statusu skanowania sieci WiFi,
+            \item \emph{GET /wifi/scan/results} - zwrócenie wyników skanowania sieci WiFi,
+            \item \emph{GET /wifi/connect} - połączenie urządzenia z wybraną siecią WiFi,
+            \item \emph{GET /wifi/connect/status} - zwrócenie statusu procesu połączenia z siecią WiFi,
+            \item \emph{GET /pagers/pair} - parowanie nowego pagera,
+            \item \emph{GET /pagers/list} - zwrócenie listy sparowanych pagerów,
+            \item \emph{GET /pagers/remove} - usuwanie pagera z listy,
+            \item \emph{GET /pagers/flash} - wywołanie danego pagera.
+        \end{itemize}
 
 	 \section{Kryptografia}
 	 	Aby oferować podstawowy poziom bezpieczeństwa, nasze rozwiązanie szyfruje wiadomości szyfrem RSA używając 32-bitowego klucza. Przesyłana jest także zaszyfrowana suma kontrolna do sprawdzania poprawności zdekodowanych danych. Funkcjonuje to analogicznie do podpisu cyfrowego
