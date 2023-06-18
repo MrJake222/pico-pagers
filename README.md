@@ -1,5 +1,13 @@
 # Pico Pagers
-We've prepared a system for automatic notification of customers in a restaurant. It consists of 2 parts: `pagers-server` (sending notifications) and `pagers-client` (receiving notifications). You can watch a short presentation film [here](https://youtu.be/sYn1QQI6XuY).
+We've prepared a system for automatic notification of customers in a restaurant. It consists of 2 parts: `pagers-server` (sending notifications) and `pagers-client` (receiving notifications). 
+
+**Short presentation video**
+
+[![Watch the video](https://img.youtube.com/vi/sYn1QQI6XuY/default.jpg)](https://youtu.be/sYn1QQI6XuY)
+
+**Documentation**
+
+You can access detailed documentation [here](docs/lab.pdf).
 
 ## SDK
 ```
