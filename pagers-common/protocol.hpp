@@ -31,7 +31,7 @@ enum MessageType {
 
 // this will be sent as is
 struct proto_frame {
-    unsigned char encrypted_data[PROTO_DATA_SIZE];
+    unsigned char encrypted_data[PROTO_DATA_SIZE * 2];
 };
 
 #define PROTO_FRAME_SIZE sizeof(struct proto_frame)
@@ -48,7 +48,7 @@ int proto_checksum_calc(struct proto_data* data);
 int proto_checksum_verify(struct proto_data* data);
 
 // takes data and saves encrypted data to frame->encrypted_data
-int proto_encrypt(const uint8_t* private_key, const struct proto_data* data, struct proto_frame* frame);
+int proto_encrypt(const struct proto_data* data, struct proto_frame* frame);
 
 // verifies frame->encrypted_data and saves as frame
-int proto_decrypt(const uint8_t* public_key, const struct proto_frame* frame, struct proto_data* data);
+int proto_decrypt(const struct proto_frame* frame, struct proto_data* data);

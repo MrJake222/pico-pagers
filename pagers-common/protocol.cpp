@@ -16,16 +16,14 @@ int proto_checksum_verify(struct proto_data *data) {
     return SUCCESS;
 }
 
-int proto_encrypt(const uint8_t *private_key, const struct proto_data *data, struct proto_frame *frame) {
-    // TODO secure this
-    ::memcpy(frame->encrypted_data, data, PROTO_DATA_SIZE);
+int proto_encrypt(const struct proto_data *data, struct proto_frame *frame) {
+    crypto_encrypt(PROTO_DATA_SIZE / 2, (const ushort*)data, (uint*)frame->encrypted_data);
 
     return SUCCESS;
 }
 
-int proto_decrypt(const uint8_t *public_key, const struct proto_frame *frame, struct proto_data *data) {
-    // TODO secure this
-    ::memcpy(data, frame->encrypted_data, PROTO_DATA_SIZE);
+int proto_decrypt(const struct proto_frame *frame, struct proto_data *data) {
+    crypto_decrypt(PROTO_DATA_SIZE / 2, (ushort*)data, (uint*)frame->encrypted_data);
 
     return SUCCESS;
 }

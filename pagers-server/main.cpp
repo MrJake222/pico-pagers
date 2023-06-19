@@ -27,7 +27,6 @@ DynamicJsonDocument json(8*1024);
 const unsigned short DEFAULT_MSG_COUNT = 5;
 
 unsigned long long sequence_number = 0;
-const uint8_t private_key[KEY_LENGTH_BYTES] = { 0 };
 
 PagerList pagers(&lfs, "/pagers");
 
@@ -267,7 +266,7 @@ void send_message(struct proto_data* data) {
 
     struct proto_frame frame;
     proto_checksum_calc(data);
-    proto_encrypt(private_key, data, &frame);
+    proto_encrypt(data, &frame);
 
     send_bytes((uint8_t*)&frame, PROTO_FRAME_SIZE);
 }
@@ -389,38 +388,7 @@ int main() {
     server.on(Method::GET, "/pagers/remove", http_pagers_remove);
     server.on(Method::GET, "/pagers/flash", http_pagers_flash);
 
-    /**
-     *
-     * REST OF THE CODE
-     *
-     */
-
-
-    struct proto_data data = {
-            .sequence_number = 0, //0xCAFEDEADBEEFCAFE,
-            .receiver_id = 0x1215,
-            .message_type = MessageType::DEFAULT,
-            .message_param = 0xACDC
-    };
-
-    const uint8_t private_key[KEY_LENGTH_BYTES] = { 0 };
-    struct proto_frame frame;
-
     send_setup();
-
-    // for testing
-    gpio_init(2);
-    gpio_set_dir(2, GPIO_OUT);
-
-    proto_checksum_calc(&data);
-    proto_encrypt(private_key, &data, &frame);
-    printf("sending: ");
-    for (int i=0; i<PROTO_DATA_SIZE; i++)
-        printf("%02x ", ((uint8_t*)&frame)[i]);
-    printf("\n");
-
-    printf("sizeof proto_data %u\n", sizeof(struct proto_data));
-    printf("sizeof proto_frame %u\n", sizeof(struct proto_frame));
 
     while (1) {
         if (wifi_scan) {
@@ -434,8 +402,6 @@ int main() {
         }
 
         send_messages();
-
-        // send_message(&data);
 
         server.loop();
         pagers.loop();

@@ -19,15 +19,15 @@ bool is_pairing_mode = false;
 
 void frame_received(const volatile uint8_t* buf, uint bytes) {
     if (!frame_present) {
-        if (bytes != PROTO_DATA_SIZE) {
-            printf("wrong number of bytes to decode, is %d, should be %d: ", bytes, PROTO_DATA_SIZE);
+        if (bytes != PROTO_FRAME_SIZE) {
+            printf("wrong number of bytes to decode, is %d, should be %d: ", bytes, PROTO_FRAME_SIZE);
             for (int i=0; i<bytes; i++)
                 printf("%02x ", buf[i]);
             puts("");
             return;
         }
 
-        memcpy((void*) &frame, (const void*) buf, PROTO_DATA_SIZE);
+        memcpy((void*) &frame, (const void*) buf, PROTO_FRAME_SIZE);
         frame_present = true;
     }
 }
@@ -36,7 +36,6 @@ void frame_received(const volatile uint8_t* buf, uint bytes) {
 // device id
 unsigned short device_id = 0x1215;
 int flash_time_left = 0;
-const uint8_t public_key[KEY_LENGTH_BYTES] = { 0 };
 struct proto_data data;
 
 uint64_t last_flash;
@@ -94,7 +93,7 @@ int main() {
 
         if (frame_present) {
             // TODO check return value
-            proto_decrypt(public_key, (struct proto_frame*)&frame, &data);
+            proto_decrypt((struct proto_frame*)&frame, &data);
             int checksum_verify = proto_checksum_verify(&data);
 
             if (checksum_verify == SUCCESS) {
@@ -128,6 +127,9 @@ int main() {
                         gpio_put(LED_YELLOW, false);
                 }
             }
+
+            // for (int i=0; i<PROTO_FRAME_SIZE; i++)
+            //     printf("%02x ", ((uint8_t*)&frame)[i]);
 
             int time_seconds = time_us_64() / 1000000;
             printf("[%02d:%02d] rid=%04x, seq=%16llx, type=%04x, param=%04x, checksum=%04x [%s]\n",
