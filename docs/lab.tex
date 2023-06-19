@@ -124,6 +124,19 @@
             \item sieć WiFi (2.4 GHz),
             \item urządzenie (np. telefon, komputer) połączone z tą siecią WiFi.
         \end{itemize}
+        \subsection{Schemat połączeń elektrycznych}
+        \label{uruchomienie}
+        Aby układ działał poprawnie i odbiornik miał możliwość sygnalizowania i włączania trybu parowania, należy skonstruować niżej przedstawiony układ.
+		\imgcustomsize{sch/tx}{Układ nadajnika}{0.6}
+		\imgcustomsize{sch/rx}{Układ odbiornika}{0.8}
+		\begin{itemize}
+			\item Dioda zielona \lstinline|LED_G| sygnalizuje odebranie poprawnej wiadomości,
+			\item Dioda żółta \lstinline|LED_Y| sygnalizuje: tryb parowania (szybkie miganie), powiadomienie klienta (wolne miganie),
+			\item Dioda czerwona \lstinline|LED_R| sygnalizuje odebranie błędnej wiadomości (błąd sumy kontrolnej),
+			\item Przycisk \lstinline|SW1| włącza/wyłącza tryb parowania.
+		\end{itemize}
+		
+        
         \subsection{Konfiguracja sieci WiFi}
         \subsubsection{Opis}
         Konfiguracja urządzenia przebiega w następujący sposób:
@@ -200,11 +213,7 @@
         \end{itemize}
 
 		\subsection{Warstwa sprzętowa}
-			Obsługa nadajnika/odbiornika opiera się na podłączeniu zasilania i nadawania/odbierania poprzez jeden dostępny przewód danych. Niestety te moduły zasilane są napięciem 5V i taki standard napięć stosują na wyjściu. Pi Pico toleruje tylko 3.3V. Konieczna więc była konwersja poziomów logicznych.
-
-			\imgsidebyside{sch/tx}{Układ nadajnika}{sch/rx}{Układ odbiornika}
-
-			Podwójne odwracanie sygnału przez tranzystory niweluje się. Na wejściu odbiornika dostajemy nieodwrócony sygnał z nadajnika.
+			Obsługa nadajnika/odbiornika opiera się na podłączeniu zasilania i nadawania/odbierania poprzez jeden dostępny przewód danych. Niestety te moduły zasilane są napięciem 5V i taki standard napięć stosują na wyjściu. Pi Pico toleruje tylko 3.3V. Konieczna więc była konwersja poziomów logicznych (uwzględniona w schemacie w sekcji \ref{uruchomienie}). Podwójne odwracanie sygnału przez tranzystory niweluje się. Na wejściu odbiornika dostajemy nieodwrócony sygnał z nadajnika.
 
 		\subsection{Warstwa programowa}
 			Pierwszą naszą próbą było wykorzystanie wbudowanej komunikacji UART. Jednak okazało się że moduły te niezbyt dobrze przenoszą niezmieniający się sygnał (co widać poniżej).
